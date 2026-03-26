@@ -545,7 +545,7 @@ function esc(s) { const d = document.createElement("div"); d.textContent = s || 
 
 const DAY_NAMES = ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."];
 const DAY_NAMES_FULL = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
-const HOURS = Array.from({ length: 16 }, (_, i) => i + 6);
+const HOURS = Array.from({ length: 24 }, (_, i) => i); // 00:00 – 23:00
 
 // ═════════════════════════════════════════════════════════════
 // EVENT CARD BUILDER (shared across views)
