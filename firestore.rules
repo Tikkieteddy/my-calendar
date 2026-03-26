@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Events collection
+    match /events/{eventId} {
+      // Allow reads from the dashboard (no auth required for personal use)
+      // For production, add Firebase Auth and restrict by userId
+      allow read: if true;
+
+      // Allow creates with required fields
+      allow create: if request.resource.data.keys().hasAll(['title', 'date', 'time', 'status'])
+                    && request.resource.data.title is string
+                    && request.resource.data.date is string
+                    && request.resource.data.time is string;
+
+      // Allow updates
+      allow update: if true;
+
+      // Allow deletes
+      allow delete: if true;
+    }
+
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

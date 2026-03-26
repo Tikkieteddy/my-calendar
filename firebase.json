@@ -1,0 +1,20 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": ["node_modules", ".git"]
+    }
+  ],
+  "hosting": {
+    "public": ".",
+    "ignore": ["firebase.json", "**/node_modules/**", "functions/**", ".env*", "README.md"],
+    "rewrites": [
+      { "source": "/webhook", "function": "lineWebhook" },
+      { "source": "/api/**", "function": "api" }
+    ]
+  }
+}

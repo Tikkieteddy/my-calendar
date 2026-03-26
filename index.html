@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>📅 ปฏิทินส่วนตัว</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #252836;
+    --border: #2e3140;
+    --text: #e4e6f0;
+    --text2: #8b8fa3;
+    --accent: #6c5ce7;
+    --accent-light: #a29bfe;
+    --work: #6c5ce7;
+    --health: #00cec9;
+    --personal: #fdcb6e;
+    --social: #e17055;
+    --errands: #55efc4;
+    --done-bg: #1e272e;
+    --done-text: #636e72;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 4px 24px rgba(0,0,0,.3);
+  }
+  html { font-size: 15px; }
+  body {
+    font-family: 'Segoe UI', -apple-system, system-ui, sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header h1 { font-size: 1.2rem; font-weight: 700; }
+  .header h1 span { color: var(--accent-light); }
+  .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .week-nav { display: flex; gap: 5px; align-items: center; }
+  .week-nav button, .btn-sm {
+    background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 6px 12px; cursor: pointer;
+    font-size: .82rem; transition: all .15s;
+  }
+  .week-nav button:hover, .btn-sm:hover { background: var(--accent); border-color: var(--accent); }
+  .week-label { font-size: .85rem; color: var(--text2); min-width: 160px; text-align: center; }
+  .btn-add {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: var(--radius-sm); padding: 7px 16px;
+    font-size: .85rem; font-weight: 600; cursor: pointer; transition: all .15s;
+  }
+  .btn-add:hover { background: var(--accent-light); transform: translateY(-1px); }
+
+  /* ── Main Layout ── */
+  .main-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 0;
+    min-height: calc(100vh - 56px);
+  }
+
+  /* ── Legend ── */
+  .legend { display: flex; gap: 14px; padding: 10px 20px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: .75rem; color: var(--text2); }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+
+  /* ── Calendar Grid ── */
+  .calendar-wrap { padding: 12px; overflow-x: auto; }
+  .calendar {
+    display: grid; grid-template-columns: 52px repeat(7, 1fr);
+    gap: 1px; background: var(--border);
+    border-radius: var(--radius); overflow: hidden; min-width: 600px;
+  }
+  .day-header {
+    background: var(--surface); padding: 10px 6px; text-align: center;
+    font-weight: 600; font-size: .78rem; color: var(--text2);
+    border-bottom: 2px solid var(--border);
+  }
+  .day-header.today { color: var(--accent-light); border-bottom-color: var(--accent); }
+  .day-header .date-num { display: block; font-size: 1.1rem; color: var(--text); margin-top: 2px; }
+  .day-header.today .date-num {
+    background: var(--accent); color: #fff; border-radius: 50%;
+    width: 30px; height: 30px; line-height: 30px; margin: 3px auto 0;
+  }
+  .time-header {
+    background: var(--surface); padding: 10px 6px; text-align: center;
+    font-weight: 600; font-size: .78rem; color: var(--text2);
+    border-bottom: 2px solid var(--border);
+  }
+  .time-slot {
+    background: var(--surface); padding: 3px 5px; font-size: .68rem;
+    color: var(--text2); text-align: right; min-height: 44px;
+    display: flex; align-items: flex-start; justify-content: flex-end;
+  }
+  .day-cell {
+    background: var(--bg); min-height: 44px; padding: 2px;
+    cursor: pointer; transition: background .15s;
+  }
+  .day-cell:hover { background: var(--surface2); }
+
+  /* ── Event Cards ── */
+  .event-card {
+    border-radius: 5px; padding: 3px 6px; margin: 1px 0;
+    font-size: .68rem; cursor: pointer; line-height: 1.3;
+    border-left: 3px solid; transition: transform .1s, box-shadow .15s;
+  }
+  .event-card:hover { transform: scale(1.03); box-shadow: var(--shadow); z-index: 10; }
+  .event-card.work { background: rgba(108,92,231,.18); border-color: var(--work); color: #b8b0ff; }
+  .event-card.health { background: rgba(0,206,201,.15); border-color: var(--health); color: #7fefec; }
+  .event-card.personal { background: rgba(253,203,110,.15); border-color: var(--personal); color: #fde68a; }
+  .event-card.social { background: rgba(225,112,85,.15); border-color: var(--social); color: #f0a090; }
+  .event-card.errands { background: rgba(85,239,196,.12); border-color: var(--errands); color: #80f5d4; }
+  .event-card.done {
+    opacity: .4; text-decoration: line-through;
+    border-color: var(--done-text) !important;
+    background: var(--done-bg) !important; color: var(--done-text) !important;
+  }
+  .event-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .event-time { font-size: .64rem; opacity: .8; }
+  .event-note { font-size: .62rem; opacity: .7; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 3px; }
+  .status-dot.pending { background: #ffeaa7; }
+  .status-dot.done { background: #55efc4; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+
+  /* ══════════════════════════════════════════════════
+     TO-DO PANEL (right sidebar)
+     ══════════════════════════════════════════════════ */
+  .todo-panel {
+    background: var(--surface); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .todo-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+  }
+  .todo-header h2 { font-size: 1rem; font-weight: 700; }
+  .todo-header .todo-count {
+    font-size: .72rem; color: var(--text2);
+    background: var(--surface2); padding: 2px 10px; border-radius: 12px;
+  }
+  .todo-tabs {
+    display: flex; border-bottom: 1px solid var(--border);
+  }
+  .todo-tab {
+    flex: 1; padding: 9px 0; text-align: center; font-size: .78rem;
+    color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all .15s; background: none; border-top: none; border-left: none; border-right: none;
+  }
+  .todo-tab:hover { color: var(--text); }
+  .todo-tab.active { color: var(--accent-light); border-bottom-color: var(--accent); }
+  .todo-input-wrap {
+    display: flex; gap: 6px; padding: 12px 14px; border-bottom: 1px solid var(--border);
+  }
+  .todo-input-wrap input {
+    flex: 1; padding: 8px 10px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text); font-size: .82rem; outline: none;
+  }
+  .todo-input-wrap input:focus { border-color: var(--accent); }
+  .todo-input-wrap button {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: var(--radius-sm); padding: 8px 14px;
+    font-size: .82rem; font-weight: 600; cursor: pointer;
+  }
+  .todo-input-wrap button:hover { background: var(--accent-light); }
+  .todo-list {
+    flex: 1; overflow-y: auto; padding: 8px 0;
+  }
+  .todo-list::-webkit-scrollbar { width: 4px; }
+  .todo-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .todo-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 16px; transition: background .1s; cursor: default;
+    border-bottom: 1px solid rgba(46,49,64,.4);
+  }
+  .todo-item:hover { background: var(--surface2); }
+  .todo-item.done { opacity: .45; }
+  .todo-check {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid var(--border); cursor: pointer;
+    flex-shrink: 0; margin-top: 2px; transition: all .15s;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent;
+  }
+  .todo-check:hover { border-color: var(--accent); }
+  .todo-check.checked {
+    background: var(--accent); border-color: var(--accent);
+  }
+  .todo-check.checked::after {
+    content: "✓"; color: #fff; font-size: .65rem; font-weight: 700;
+  }
+  .todo-body { flex: 1; min-width: 0; }
+  .todo-text { font-size: .84rem; line-height: 1.4; word-break: break-word; }
+  .todo-item.done .todo-text { text-decoration: line-through; color: var(--done-text); }
+  .todo-meta {
+    display: flex; gap: 8px; margin-top: 3px; font-size: .68rem; color: var(--text2);
+  }
+  .todo-delete {
+    background: none; border: none; color: var(--text2);
+    cursor: pointer; font-size: .78rem; padding: 2px 4px;
+    opacity: 0; transition: opacity .15s, color .15s;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .todo-item:hover .todo-delete { opacity: 1; }
+  .todo-delete:hover { color: #e74c3c; }
+  .todo-empty {
+    text-align: center; padding: 40px 20px; color: var(--text2); font-size: .85rem;
+  }
+  .todo-progress {
+    padding: 10px 16px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .todo-progress-bar {
+    flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden;
+  }
+  .todo-progress-fill {
+    height: 100%; background: var(--accent); border-radius: 3px;
+    transition: width .3s;
+  }
+  .todo-progress-text { font-size: .72rem; color: var(--text2); white-space: nowrap; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.6); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px;
+    width: 400px; max-width: 94vw; box-shadow: var(--shadow);
+  }
+  .modal h2 { font-size: 1.05rem; margin-bottom: 16px; }
+  .modal label {
+    display: block; font-size: .78rem; color: var(--text2);
+    margin-bottom: 3px; margin-top: 12px;
+  }
+  .modal label:first-of-type { margin-top: 0; }
+  .modal input, .modal select, .modal textarea {
+    width: 100%; padding: 9px 11px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text); font-size: .85rem; outline: none;
+  }
+  .modal input:focus, .modal select:focus, .modal textarea:focus { border-color: var(--accent); }
+  .modal textarea { resize: vertical; min-height: 55px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 18px; justify-content: flex-end; }
+  .modal-actions button {
+    padding: 8px 18px; border-radius: var(--radius-sm);
+    font-size: .84rem; font-weight: 600; cursor: pointer; border: none;
+  }
+  .btn-save { background: var(--accent); color: #fff; }
+  .btn-save:hover { background: var(--accent-light); }
+  .btn-cancel { background: var(--surface2); color: var(--text2); border: 1px solid var(--border) !important; }
+  .btn-cancel:hover { color: var(--text); }
+  .btn-delete { background: #d63031; color: #fff; margin-right: auto; }
+  .btn-delete:hover { background: #e74c3c; }
+
+  /* ── Storage indicator ── */
+  .storage-badge {
+    font-size: .68rem; padding: 3px 8px; border-radius: 10px;
+    background: var(--surface2); color: var(--text2); margin-left: 8px;
+  }
+  .storage-badge.firebase { background: rgba(255,152,0,.15); color: #ffb74d; }
+  .storage-badge.local { background: rgba(108,92,231,.15); color: var(--accent-light); }
+
+  /* ── Mobile ── */
+  @media (max-width: 900px) {
+    .main-layout { grid-template-columns: 1fr; }
+    .todo-panel { border-left: none; border-top: 1px solid var(--border); max-height: 50vh; }
+    .header { padding: 10px 12px; flex-wrap: wrap; gap: 6px; }
+    .calendar-wrap { padding: 6px; }
+    .calendar { min-width: 460px; grid-template-columns: 40px repeat(7, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .legend { padding: 6px 10px; gap: 8px; }
+    .week-label { min-width: 120px; font-size: .78rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div style="display:flex;align-items:center">
+    <h1>📅 <span>ปฏิทิน</span>ส่วนตัว</h1>
+    <span class="storage-badge local" id="storageBadge">💾 localStorage</span>
+  </div>
+  <div class="header-actions">
+    <div class="week-nav">
+      <button id="prevWeek">◀</button>
+      <span class="week-label" id="weekLabel"></span>
+      <button id="nextWeek">▶</button>
+      <button id="todayBtn" style="margin-left:4px">วันนี้</button>
+    </div>
+    <button class="btn-add" id="addBtn">+ เพิ่มกิจกรรม</button>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--work)"></div> งาน</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--health)"></div> สุขภาพ</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--personal)"></div> ส่วนตัว</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--social)"></div> สังคม</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--errands)"></div> ธุระ</div>
+</div>
+
+<!-- Main 2-Column -->
+<div class="main-layout">
+  <!-- Calendar -->
+  <div class="calendar-col">
+    <div class="calendar-wrap">
+      <div class="calendar" id="calendarGrid"></div>
+    </div>
+  </div>
+
+  <!-- To-Do Panel -->
+  <div class="todo-panel">
+    <div class="todo-header">
+      <h2>📝 รายการสิ่งที่ต้องทำ</h2>
+      <span class="todo-count" id="todoCount">0 รายการ</span>
+    </div>
+    <div class="todo-tabs">
+      <button class="todo-tab active" data-filter="all">ทั้งหมด</button>
+      <button class="todo-tab" data-filter="pending">ยังไม่ทำ</button>
+      <button class="todo-tab" data-filter="done">เสร็จแล้ว</button>
+    </div>
+    <div class="todo-input-wrap">
+      <input type="text" id="todoInput" placeholder="เพิ่มรายการใหม่..." />
+      <button id="todoAddBtn">เพิ่ม</button>
+    </div>
+    <div class="todo-list" id="todoList"></div>
+    <div class="todo-progress">
+      <div class="todo-progress-bar"><div class="todo-progress-fill" id="todoProgressFill"></div></div>
+      <span class="todo-progress-text" id="todoProgressText">0%</span>
+    </div>
+  </div>
+</div>
+
+<!-- Event Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">เพิ่มกิจกรรม</h2>
+    <label>ชื่อกิจกรรม</label>
+    <input type="text" id="fTitle" placeholder="เช่น ประชุมลูกค้า" />
+    <label>วันที่</label>
+    <input type="date" id="fDate" />
+    <label>เวลา</label>
+    <input type="time" id="fTime" value="09:00" />
+    <label>หมวดหมู่</label>
+    <select id="fCategory">
+      <option value="work">💼 งาน</option>
+      <option value="health">💪 สุขภาพ</option>
+      <option value="personal">🏠 ส่วนตัว</option>
+      <option value="social">🎉 สังคม</option>
+      <option value="errands">🛒 ธุระ</option>
+    </select>
+    <label>หมายเหตุ</label>
+    <textarea id="fNote" placeholder="บันทึกเพิ่มเติม (ไม่บังคับ)"></textarea>
+    <label>สถานะ</label>
+    <select id="fStatus">
+      <option value="pending">รอดำเนินการ</option>
+      <option value="done">เสร็จแล้ว</option>
+    </select>
+    <input type="hidden" id="fId" />
+    <div class="modal-actions">
+      <button class="btn-delete" id="btnDelete" style="display:none">ลบ</button>
+      <button class="btn-cancel" id="btnCancel">ยกเลิก</button>
+      <button class="btn-save" id="btnSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK (optional — loads only if configured) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ═════════════════════════════════════════════════════════════
+// Firebase Config — ใส่ค่าจริงเพื่อเชื่อม Firestore (ไม่บังคับ)
+// ถ้าไม่ใส่จะใช้ localStorage อัตโนมัติ (ใช้งานบน GitHub Pages ได้เลย)
+// ═════════════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "YOUR_APP_ID"
+};
+
+let db = null;
+let useFirestore = false;
+
+try {
+  if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    useFirestore = true;
+    document.getElementById("storageBadge").textContent = "🔥 Firestore";
+    document.getElementById("storageBadge").className = "storage-badge firebase";
+  }
+} catch (e) {
+  console.warn("Firebase init failed, ใช้ localStorage:", e);
+}
+
+// ═════════════════════════════════════════════════════════════
+// localStorage helpers
+// ═════════════════════════════════════════════════════════════
+const LS_EVENTS = "cal_events";
+const LS_TODOS = "cal_todos";
+
+function lsLoad(key) {
+  try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
+}
+function lsSave(key, data) {
+  localStorage.setItem(key, JSON.stringify(data));
+}
+
+// ═════════════════════════════════════════════════════════════
+// State
+// ═════════════════════════════════════════════════════════════
+let events = useFirestore ? [] : lsLoad(LS_EVENTS);
+let todos = lsLoad(LS_TODOS);  // To-do always in localStorage (simple & fast)
+let currentWeekStart = getMonday(new Date());
+let editingId = null;
+let unsubscribe = null;
+let todoFilter = "all";
+
+// ═════════════════════════════════════════════════════════════
+// Utilities
+// ═════════════════════════════════════════════════════════════
+function getMonday(d) {
+  const dt = new Date(d);
+  const day = dt.getDay();
+  dt.setDate(dt.getDate() - day + (day === 0 ? -6 : 1));
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+function addDays(d, n) { const dt = new Date(d); dt.setDate(dt.getDate() + n); return dt; }
+function fmtDate(d) {
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function fmtShort(d) {
+  const m = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+  return d.getDate() + " " + m[d.getMonth()];
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function el(tag, props, text) {
+  const e = document.createElement(tag);
+  if (props) Object.assign(e, props);
+  if (text) e.textContent = text;
+  return e;
+}
+function esc(s) { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
+
+const DAY_NAMES = ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."];
+const HOURS = Array.from({ length: 16 }, (_, i) => i + 6);
+
+// ═════════════════════════════════════════════════════════════
+// CALENDAR RENDERING
+// ═════════════════════════════════════════════════════════════
+function renderCalendar() {
+  const grid = document.getElementById("calendarGrid");
+  grid.innerHTML = "";
+  const weekEnd = addDays(currentWeekStart, 6);
+  document.getElementById("weekLabel").textContent = fmtShort(currentWeekStart) + " – " + fmtShort(weekEnd);
+  const todayStr = fmtDate(new Date());
+
+  grid.appendChild(el("div", { className: "time-header" }, ""));
+  for (let d = 0; d < 7; d++) {
+    const date = addDays(currentWeekStart, d);
+    const dateStr = fmtDate(date);
+    const isToday = dateStr === todayStr;
+    const header = el("div", { className: "day-header" + (isToday ? " today" : "") });
+    header.innerHTML = DAY_NAMES[d] + '<span class="date-num">' + date.getDate() + "</span>";
+    grid.appendChild(header);
+  }
+
+  for (const hour of HOURS) {
+    const label = String(hour).padStart(2,"0") + ":00";
+    grid.appendChild(el("div", { className: "time-slot" }, label));
+    for (let d = 0; d < 7; d++) {
+      const date = addDays(currentWeekStart, d);
+      const dateStr = fmtDate(date);
+      const cell = el("div", { className: "day-cell" });
+      cell.dataset.date = dateStr; cell.dataset.hour = hour;
+      cell.addEventListener("click", (e) => {
+        if (e.target.closest(".event-card")) return;
+        openModal(null, dateStr, String(hour).padStart(2,"0") + ":00");
+      });
+      const slotEvents = events.filter(ev => ev.date === dateStr && parseInt(ev.time) === hour);
+      slotEvents.sort((a,b) => a.time.localeCompare(b.time));
+      for (const ev of slotEvents) {
+        const card = el("div", { className: "event-card " + (ev.category||"personal") + (ev.status==="done" ? " done" : "") });
+        const sc = ev.status === "done" ? "done" : "pending";
+        card.innerHTML =
+          '<div class="event-title"><span class="status-dot ' + sc + '"></span>' + esc(ev.title) + '</div>' +
+          '<div class="event-time">' + ev.time + '</div>' +
+          (ev.note ? '<div class="event-note">📝 ' + esc(ev.note) + '</div>' : '');
+        card.addEventListener("click", (e) => { e.stopPropagation(); openModal(ev); });
+        cell.appendChild(card);
+      }
+      grid.appendChild(cell);
+    }
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// EVENT MODAL
+// ═════════════════════════════════════════════════════════════
+function openModal(ev, date, time) {
+  editingId = ev ? ev.id : null;
+  document.getElementById("modalTitle").textContent = ev ? "แก้ไขกิจกรรม" : "เพิ่มกิจกรรม";
+  document.getElementById("fTitle").value = ev ? ev.title : "";
+  document.getElementById("fDate").value = ev ? ev.date : (date || fmtDate(new Date()));
+  document.getElementById("fTime").value = ev ? ev.time : (time || "09:00");
+  document.getElementById("fCategory").value = ev ? (ev.category||"personal") : "personal";
+  document.getElementById("fNote").value = ev ? (ev.note||"") : "";
+  document.getElementById("fStatus").value = ev ? (ev.status||"pending") : "pending";
+  document.getElementById("btnDelete").style.display = ev ? "inline-block" : "none";
+  document.getElementById("modalOverlay").classList.add("active");
+  setTimeout(() => document.getElementById("fTitle").focus(), 50);
+}
+function closeModal() {
+  document.getElementById("modalOverlay").classList.remove("active");
+  editingId = null;
+}
+
+async function saveEvent() {
+  const title = document.getElementById("fTitle").value.trim();
+  if (!title) return alert("กรุณาใส่ชื่อกิจกรรม");
+  const data = {
+    title,
+    date: document.getElementById("fDate").value,
+    time: document.getElementById("fTime").value,
+    category: document.getElementById("fCategory").value,
+    note: document.getElementById("fNote").value.trim(),
+    status: document.getElementById("fStatus").value,
+  };
+  if (useFirestore) {
+    if (editingId) { await db.collection("events").doc(editingId).update(data); }
+    else {
+      data.notified = false; data.reminderCount = 0; data.lastReminderAt = null;
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection("events").add(data);
+    }
+  } else {
+    if (editingId) {
+      const idx = events.findIndex(e => e.id === editingId);
+      if (idx !== -1) events[idx] = { ...events[idx], ...data };
+    } else {
+      data.id = uid(); data.notified = false;
+      events.push(data);
+    }
+    lsSave(LS_EVENTS, events);
+    renderCalendar();
+  }
+  closeModal();
+}
+
+async function deleteEvent() {
+  if (!editingId) return;
+  if (!confirm("ต้องการลบกิจกรรมนี้?")) return;
+  if (useFirestore) { await db.collection("events").doc(editingId).delete(); }
+  else {
+    events = events.filter(e => e.id !== editingId);
+    lsSave(LS_EVENTS, events);
+    renderCalendar();
+  }
+  closeModal();
+}
+
+// ═════════════════════════════════════════════════════════════
+// FIRESTORE SYNC (optional)
+// ═════════════════════════════════════════════════════════════
+function subscribeWeek() {
+  if (!useFirestore) { renderCalendar(); return; }
+  if (unsubscribe) unsubscribe();
+  const start = fmtDate(currentWeekStart);
+  const end = fmtDate(addDays(currentWeekStart, 6));
+  unsubscribe = db.collection("events")
+    .where("date",">=",start).where("date","<=",end)
+    .orderBy("date").orderBy("time")
+    .onSnapshot(snap => {
+      events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderCalendar();
+    }, err => { console.error("Firestore error:", err); renderCalendar(); });
+}
+
+// ═════════════════════════════════════════════════════════════
+// TO-DO LIST
+// ═════════════════════════════════════════════════════════════
+function renderTodos() {
+  const list = document.getElementById("todoList");
+  list.innerHTML = "";
+
+  let filtered = todos;
+  if (todoFilter === "pending") filtered = todos.filter(t => !t.done);
+  if (todoFilter === "done") filtered = todos.filter(t => t.done);
+
+  // Sort: pending first, then by creation (newest first)
+  filtered.sort((a,b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    return b.createdAt - a.createdAt;
+  });
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="todo-empty">' +
+      (todoFilter === "done" ? "ยังไม่มีรายการที่เสร็จ" :
+       todoFilter === "pending" ? "ทำเสร็จหมดแล้ว 🎉" :
+       "ยังไม่มีรายการ — เพิ่มรายการแรกเลย!") + '</div>';
+  }
+
+  for (const todo of filtered) {
+    const item = el("div", { className: "todo-item" + (todo.done ? " done" : "") });
+
+    const check = el("div", { className: "todo-check" + (todo.done ? " checked" : "") });
+    check.addEventListener("click", () => toggleTodo(todo.id));
+
+    const body = el("div", { className: "todo-body" });
+    const text = el("div", { className: "todo-text" });
+    text.textContent = todo.text;
+    body.appendChild(text);
+
+    const meta = el("div", { className: "todo-meta" });
+    const d = new Date(todo.createdAt);
+    meta.textContent = fmtShort(d) + " " + String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+    if (todo.done && todo.doneAt) {
+      const dd = new Date(todo.doneAt);
+      meta.textContent += " · เสร็จ " + fmtShort(dd);
+    }
+    body.appendChild(meta);
+
+    const del = el("button", { className: "todo-delete" }, "✕");
+    del.addEventListener("click", () => deleteTodo(todo.id));
+
+    item.appendChild(check);
+    item.appendChild(body);
+    item.appendChild(del);
+    list.appendChild(item);
+  }
+
+  // Update count & progress
+  const total = todos.length;
+  const doneCount = todos.filter(t => t.done).length;
+  document.getElementById("todoCount").textContent = total + " รายการ";
+  const pct = total > 0 ? Math.round(doneCount / total * 100) : 0;
+  document.getElementById("todoProgressFill").style.width = pct + "%";
+  document.getElementById("todoProgressText").textContent = doneCount + "/" + total + " (" + pct + "%)";
+}
+
+function addTodo(text) {
+  text = text.trim();
+  if (!text) return;
+  todos.push({ id: uid(), text, done: false, createdAt: Date.now(), doneAt: null });
+  lsSave(LS_TODOS, todos);
+  renderTodos();
+}
+
+function toggleTodo(id) {
+  const t = todos.find(t => t.id === id);
+  if (!t) return;
+  t.done = !t.done;
+  t.doneAt = t.done ? Date.now() : null;
+  lsSave(LS_TODOS, todos);
+  renderTodos();
+}
+
+function deleteTodo(id) {
+  todos = todos.filter(t => t.id !== id);
+  lsSave(LS_TODOS, todos);
+  renderTodos();
+}
+
+// ═════════════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ═════════════════════════════════════════════════════════════
+document.getElementById("prevWeek").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, -7); subscribeWeek(); });
+document.getElementById("nextWeek").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, 7); subscribeWeek(); });
+document.getElementById("todayBtn").addEventListener("click", () => { currentWeekStart = getMonday(new Date()); subscribeWeek(); });
+document.getElementById("addBtn").addEventListener("click", () => openModal(null));
+document.getElementById("btnSave").addEventListener("click", saveEvent);
+document.getElementById("btnDelete").addEventListener("click", deleteEvent);
+document.getElementById("btnCancel").addEventListener("click", closeModal);
+document.getElementById("modalOverlay").addEventListener("click", (e) => { if (e.target === e.currentTarget) closeModal(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+
+// To-Do input
+document.getElementById("todoAddBtn").addEventListener("click", () => {
+  const inp = document.getElementById("todoInput");
+  addTodo(inp.value); inp.value = ""; inp.focus();
+});
+document.getElementById("todoInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    const inp = document.getElementById("todoInput");
+    addTodo(inp.value); inp.value = "";
+  }
+});
+
+// To-Do tabs
+document.querySelectorAll(".todo-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".todo-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    todoFilter = tab.dataset.filter;
+    renderTodos();
+  });
+});
+
+// ═════════════════════════════════════════════════════════════
+// INIT
+// ═════════════════════════════════════════════════════════════
+subscribeWeek();
+renderTodos();
+</script>
+</body>
+</html>
