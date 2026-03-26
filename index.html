@@ -42,14 +42,27 @@
   .header h1 { font-size: 1.2rem; font-weight: 700; }
   .header h1 span { color: var(--accent-light); }
   .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .week-nav { display: flex; gap: 5px; align-items: center; }
-  .week-nav button, .btn-sm {
+  .cal-nav { display: flex; gap: 5px; align-items: center; }
+  .cal-nav button, .btn-sm {
     background: var(--surface2); color: var(--text); border: 1px solid var(--border);
     border-radius: var(--radius-sm); padding: 6px 12px; cursor: pointer;
     font-size: .82rem; transition: all .15s;
   }
-  .week-nav button:hover, .btn-sm:hover { background: var(--accent); border-color: var(--accent); }
-  .week-label { font-size: .85rem; color: var(--text2); min-width: 160px; text-align: center; }
+  .cal-nav button:hover, .btn-sm:hover { background: var(--accent); border-color: var(--accent); }
+  .cal-label { font-size: .85rem; color: var(--text2); min-width: 160px; text-align: center; }
+
+  /* ── View Switcher ── */
+  .view-switcher { display: flex; gap: 0; margin-right: 6px; }
+  .view-btn {
+    background: var(--surface2); color: var(--text2); border: 1px solid var(--border);
+    padding: 6px 14px; cursor: pointer; font-size: .78rem; font-weight: 600;
+    transition: all .15s;
+  }
+  .view-btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+  .view-btn:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+  .view-btn:not(:first-child) { border-left: none; }
+  .view-btn:hover { color: var(--text); }
+  .view-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
   .btn-add {
     background: var(--accent); color: #fff; border: none;
     border-radius: var(--radius-sm); padding: 7px 16px;
@@ -128,6 +141,53 @@
   .status-dot.pending { background: #ffeaa7; }
   .status-dot.done { background: #55efc4; }
   @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+
+  /* ── Daily View ── */
+  .calendar.daily { grid-template-columns: 52px 1fr; min-width: unset; }
+  .calendar.daily .day-header { font-size: .9rem; padding: 14px 10px; }
+  .calendar.daily .day-cell { min-height: 52px; padding: 4px 8px; }
+  .calendar.daily .event-card { font-size: .78rem; padding: 5px 8px; }
+  .calendar.daily .event-title { font-size: .82rem; }
+  .calendar.daily .event-time { font-size: .72rem; }
+  .calendar.daily .event-note { font-size: .68rem; }
+
+  /* ── Monthly View ── */
+  .month-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 1px; background: var(--border);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .month-header {
+    background: var(--surface); padding: 8px 4px; text-align: center;
+    font-weight: 600; font-size: .75rem; color: var(--text2);
+  }
+  .month-cell {
+    background: var(--bg); min-height: 90px; padding: 4px;
+    cursor: pointer; transition: background .15s; position: relative;
+  }
+  .month-cell:hover { background: var(--surface2); }
+  .month-cell.other-month { opacity: .3; }
+  .month-cell.today { box-shadow: inset 0 0 0 2px var(--accent); }
+  .month-date {
+    font-size: .72rem; font-weight: 600; color: var(--text2);
+    margin-bottom: 3px; padding: 1px 4px;
+  }
+  .month-cell.today .month-date {
+    background: var(--accent); color: #fff; border-radius: 10px;
+    display: inline-block; padding: 0 6px;
+  }
+  .month-event {
+    font-size: .62rem; padding: 1px 4px; margin: 1px 0;
+    border-radius: 3px; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; cursor: pointer; border-left: 2px solid;
+  }
+  .month-event.work { background: rgba(108,92,231,.18); border-color: var(--work); color: #b8b0ff; }
+  .month-event.health { background: rgba(0,206,201,.15); border-color: var(--health); color: #7fefec; }
+  .month-event.personal { background: rgba(253,203,110,.15); border-color: var(--personal); color: #fde68a; }
+  .month-event.social { background: rgba(225,112,85,.15); border-color: var(--social); color: #f0a090; }
+  .month-event.errands { background: rgba(85,239,196,.12); border-color: var(--errands); color: #80f5d4; }
+  .month-event.done { opacity: .4; text-decoration: line-through; }
+  .month-more { font-size: .6rem; color: var(--accent-light); cursor: pointer; padding: 0 4px; }
 
   /* ══════════════════════════════════════════════════
      TO-DO PANEL (right sidebar)
@@ -278,10 +338,15 @@
     .header { padding: 10px 12px; flex-wrap: wrap; gap: 6px; }
     .calendar-wrap { padding: 6px; }
     .calendar { min-width: 460px; grid-template-columns: 40px repeat(7, 1fr); }
+    .calendar.daily { min-width: unset; grid-template-columns: 40px 1fr; }
+    .month-cell { min-height: 70px; }
+    .view-btn { padding: 5px 10px; font-size: .72rem; }
   }
   @media (max-width: 600px) {
     .legend { padding: 6px 10px; gap: 8px; }
-    .week-label { min-width: 120px; font-size: .78rem; }
+    .cal-label { min-width: 120px; font-size: .78rem; }
+    .month-cell { min-height: 56px; }
+    .month-event { font-size: .55rem; }
   }
 </style>
 </head>
@@ -294,10 +359,15 @@
     <span class="storage-badge local" id="storageBadge">💾 localStorage</span>
   </div>
   <div class="header-actions">
-    <div class="week-nav">
-      <button id="prevWeek">◀</button>
-      <span class="week-label" id="weekLabel"></span>
-      <button id="nextWeek">▶</button>
+    <div class="view-switcher">
+      <button class="view-btn" data-view="day">วัน</button>
+      <button class="view-btn active" data-view="week">สัปดาห์</button>
+      <button class="view-btn" data-view="month">เดือน</button>
+    </div>
+    <div class="cal-nav">
+      <button id="prevBtn">◀</button>
+      <span class="cal-label" id="calLabel"></span>
+      <button id="nextBtn">▶</button>
       <button id="todayBtn" style="margin-left:4px">วันนี้</button>
     </div>
     <button class="btn-add" id="addBtn">+ เพิ่มกิจกรรม</button>
@@ -429,8 +499,11 @@ function lsSave(key, data) {
 // State
 // ═════════════════════════════════════════════════════════════
 let events = useFirestore ? [] : lsLoad(LS_EVENTS);
-let todos = lsLoad(LS_TODOS);  // To-do always in localStorage (simple & fast)
+let todos = lsLoad(LS_TODOS);
+let currentDate = new Date();          // anchor date for all views
 let currentWeekStart = getMonday(new Date());
+let currentMonth = new Date();
+let viewMode = "week";                 // "day" | "week" | "month"
 let editingId = null;
 let unsubscribe = null;
 let todoFilter = "all";
@@ -453,6 +526,14 @@ function fmtShort(d) {
   const m = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
   return d.getDate() + " " + m[d.getMonth()];
 }
+function fmtMonthYear(d) {
+  const m = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+  return m[d.getMonth()] + " " + (d.getFullYear() + 543);
+}
+function fmtDayFull(d) {
+  const days = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
+  return "วัน" + days[d.getDay()] + "ที่ " + fmtShort(d) + " " + (d.getFullYear() + 543);
+}
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function el(tag, props, text) {
   const e = document.createElement(tag);
@@ -463,16 +544,41 @@ function el(tag, props, text) {
 function esc(s) { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
 
 const DAY_NAMES = ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."];
+const DAY_NAMES_FULL = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 6);
 
 // ═════════════════════════════════════════════════════════════
-// CALENDAR RENDERING
+// EVENT CARD BUILDER (shared across views)
+// ═════════════════════════════════════════════════════════════
+function makeEventCard(ev) {
+  const card = el("div", { className: "event-card " + (ev.category||"personal") + (ev.status==="done" ? " done" : "") });
+  const sc = ev.status === "done" ? "done" : "pending";
+  card.innerHTML =
+    '<div class="event-title"><span class="status-dot ' + sc + '"></span>' + esc(ev.title) + '</div>' +
+    '<div class="event-time">' + ev.time + '</div>' +
+    (ev.note ? '<div class="event-note">📝 ' + esc(ev.note) + '</div>' : '');
+  card.addEventListener("click", (e) => { e.stopPropagation(); openModal(ev); });
+  return card;
+}
+
+// ═════════════════════════════════════════════════════════════
+// RENDER DISPATCHER
 // ═════════════════════════════════════════════════════════════
 function renderCalendar() {
+  if (viewMode === "day") renderDayView();
+  else if (viewMode === "month") renderMonthView();
+  else renderWeekView();
+}
+
+// ═════════════════════════════════════════════════════════════
+// WEEKLY VIEW
+// ═════════════════════════════════════════════════════════════
+function renderWeekView() {
   const grid = document.getElementById("calendarGrid");
   grid.innerHTML = "";
+  grid.className = "calendar";
   const weekEnd = addDays(currentWeekStart, 6);
-  document.getElementById("weekLabel").textContent = fmtShort(currentWeekStart) + " – " + fmtShort(weekEnd);
+  document.getElementById("calLabel").textContent = fmtShort(currentWeekStart) + " – " + fmtShort(weekEnd);
   const todayStr = fmtDate(new Date());
 
   grid.appendChild(el("div", { className: "time-header" }, ""));
@@ -492,25 +598,120 @@ function renderCalendar() {
       const date = addDays(currentWeekStart, d);
       const dateStr = fmtDate(date);
       const cell = el("div", { className: "day-cell" });
-      cell.dataset.date = dateStr; cell.dataset.hour = hour;
       cell.addEventListener("click", (e) => {
         if (e.target.closest(".event-card")) return;
         openModal(null, dateStr, String(hour).padStart(2,"0") + ":00");
       });
       const slotEvents = events.filter(ev => ev.date === dateStr && parseInt(ev.time) === hour);
       slotEvents.sort((a,b) => a.time.localeCompare(b.time));
-      for (const ev of slotEvents) {
-        const card = el("div", { className: "event-card " + (ev.category||"personal") + (ev.status==="done" ? " done" : "") });
-        const sc = ev.status === "done" ? "done" : "pending";
-        card.innerHTML =
-          '<div class="event-title"><span class="status-dot ' + sc + '"></span>' + esc(ev.title) + '</div>' +
-          '<div class="event-time">' + ev.time + '</div>' +
-          (ev.note ? '<div class="event-note">📝 ' + esc(ev.note) + '</div>' : '');
-        card.addEventListener("click", (e) => { e.stopPropagation(); openModal(ev); });
-        cell.appendChild(card);
-      }
+      for (const ev of slotEvents) cell.appendChild(makeEventCard(ev));
       grid.appendChild(cell);
     }
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// DAILY VIEW
+// ═════════════════════════════════════════════════════════════
+function renderDayView() {
+  const grid = document.getElementById("calendarGrid");
+  grid.innerHTML = "";
+  grid.className = "calendar daily";
+  const dateStr = fmtDate(currentDate);
+  document.getElementById("calLabel").textContent = fmtDayFull(currentDate);
+  const todayStr = fmtDate(new Date());
+  const isToday = dateStr === todayStr;
+
+  // Single day header
+  const dayIdx = (currentDate.getDay() + 6) % 7; // Mon=0
+  const header = el("div", { className: "day-header" + (isToday ? " today" : "") });
+  header.innerHTML = DAY_NAMES_FULL[dayIdx] + '<span class="date-num">' + currentDate.getDate() + "</span>";
+
+  grid.appendChild(el("div", { className: "time-header" }, ""));
+  grid.appendChild(header);
+
+  for (const hour of HOURS) {
+    const label = String(hour).padStart(2,"0") + ":00";
+    grid.appendChild(el("div", { className: "time-slot" }, label));
+
+    const cell = el("div", { className: "day-cell" });
+    cell.addEventListener("click", (e) => {
+      if (e.target.closest(".event-card")) return;
+      openModal(null, dateStr, String(hour).padStart(2,"0") + ":00");
+    });
+
+    const slotEvents = events.filter(ev => ev.date === dateStr && parseInt(ev.time) === hour);
+    slotEvents.sort((a,b) => a.time.localeCompare(b.time));
+    for (const ev of slotEvents) cell.appendChild(makeEventCard(ev));
+    grid.appendChild(cell);
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// MONTHLY VIEW
+// ═════════════════════════════════════════════════════════════
+function renderMonthView() {
+  const grid = document.getElementById("calendarGrid");
+  grid.innerHTML = "";
+  grid.className = "month-grid";
+  document.getElementById("calLabel").textContent = fmtMonthYear(currentMonth);
+  const todayStr = fmtDate(new Date());
+
+  // Day-of-week headers
+  for (const dn of DAY_NAMES) {
+    grid.appendChild(el("div", { className: "month-header" }, dn));
+  }
+
+  // Compute first cell: Monday of the week containing the 1st
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const first = new Date(year, month, 1);
+  const startDay = (first.getDay() + 6) % 7; // Mon=0
+  const startDate = addDays(first, -startDay);
+
+  // Always show 6 weeks = 42 cells
+  for (let i = 0; i < 42; i++) {
+    const cellDate = addDays(startDate, i);
+    const cellStr = fmtDate(cellDate);
+    const isOther = cellDate.getMonth() !== month;
+    const isToday = cellStr === todayStr;
+
+    const cell = el("div", {
+      className: "month-cell" + (isOther ? " other-month" : "") + (isToday ? " today" : "")
+    });
+    cell.addEventListener("click", (e) => {
+      if (e.target.closest(".month-event")) return;
+      openModal(null, cellStr, "09:00");
+    });
+
+    const dateLabel = el("div", { className: "month-date" }, String(cellDate.getDate()));
+    cell.appendChild(dateLabel);
+
+    // Events for this day
+    const dayEvents = events.filter(ev => ev.date === cellStr);
+    dayEvents.sort((a,b) => a.time.localeCompare(b.time));
+    const maxShow = 3;
+    for (let j = 0; j < Math.min(dayEvents.length, maxShow); j++) {
+      const ev = dayEvents[j];
+      const tag = el("div", {
+        className: "month-event " + (ev.category||"personal") + (ev.status==="done" ? " done" : "")
+      });
+      tag.textContent = ev.time.slice(0,5) + " " + ev.title;
+      tag.addEventListener("click", (e) => { e.stopPropagation(); openModal(ev); });
+      cell.appendChild(tag);
+    }
+    if (dayEvents.length > maxShow) {
+      const more = el("div", { className: "month-more" }, "+" + (dayEvents.length - maxShow) + " รายการ");
+      more.addEventListener("click", (e) => {
+        e.stopPropagation();
+        // Switch to day view for this date
+        currentDate = new Date(cellDate);
+        setView("day");
+      });
+      cell.appendChild(more);
+    }
+
+    grid.appendChild(cell);
   }
 }
 
@@ -582,11 +783,23 @@ async function deleteEvent() {
 // ═════════════════════════════════════════════════════════════
 // FIRESTORE SYNC (optional)
 // ═════════════════════════════════════════════════════════════
-function subscribeWeek() {
+function getVisibleRange() {
+  if (viewMode === "day") return { start: fmtDate(currentDate), end: fmtDate(currentDate) };
+  if (viewMode === "month") {
+    const y = currentMonth.getFullYear(), m = currentMonth.getMonth();
+    const first = new Date(y, m, 1);
+    const last = new Date(y, m + 1, 0);
+    // include overflow weeks
+    const startDay = (first.getDay() + 6) % 7;
+    return { start: fmtDate(addDays(first, -startDay)), end: fmtDate(addDays(last, 6)) };
+  }
+  return { start: fmtDate(currentWeekStart), end: fmtDate(addDays(currentWeekStart, 6)) };
+}
+
+function subscribeView() {
   if (!useFirestore) { renderCalendar(); return; }
   if (unsubscribe) unsubscribe();
-  const start = fmtDate(currentWeekStart);
-  const end = fmtDate(addDays(currentWeekStart, 6));
+  const { start, end } = getVisibleRange();
   unsubscribe = db.collection("events")
     .where("date",">=",start).where("date","<=",end)
     .orderBy("date").orderBy("time")
@@ -594,6 +807,35 @@ function subscribeWeek() {
       events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderCalendar();
     }, err => { console.error("Firestore error:", err); renderCalendar(); });
+}
+
+// ═════════════════════════════════════════════════════════════
+// VIEW SWITCHING & NAVIGATION
+// ═════════════════════════════════════════════════════════════
+function setView(mode) {
+  viewMode = mode;
+  document.querySelectorAll(".view-btn").forEach(b => b.classList.toggle("active", b.dataset.view === mode));
+  subscribeView();
+}
+
+function navPrev() {
+  if (viewMode === "day") currentDate = addDays(currentDate, -1);
+  else if (viewMode === "week") currentWeekStart = addDays(currentWeekStart, -7);
+  else { currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1); }
+  subscribeView();
+}
+function navNext() {
+  if (viewMode === "day") currentDate = addDays(currentDate, 1);
+  else if (viewMode === "week") currentWeekStart = addDays(currentWeekStart, 7);
+  else { currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1); }
+  subscribeView();
+}
+function navToday() {
+  const now = new Date();
+  currentDate = new Date(now);
+  currentWeekStart = getMonday(now);
+  currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  subscribeView();
 }
 
 // ═════════════════════════════════════════════════════════════
@@ -684,9 +926,12 @@ function deleteTodo(id) {
 // ═════════════════════════════════════════════════════════════
 // EVENT LISTENERS
 // ═════════════════════════════════════════════════════════════
-document.getElementById("prevWeek").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, -7); subscribeWeek(); });
-document.getElementById("nextWeek").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, 7); subscribeWeek(); });
-document.getElementById("todayBtn").addEventListener("click", () => { currentWeekStart = getMonday(new Date()); subscribeWeek(); });
+document.getElementById("prevBtn").addEventListener("click", navPrev);
+document.getElementById("nextBtn").addEventListener("click", navNext);
+document.getElementById("todayBtn").addEventListener("click", navToday);
+document.querySelectorAll(".view-btn").forEach(btn => {
+  btn.addEventListener("click", () => setView(btn.dataset.view));
+});
 document.getElementById("addBtn").addEventListener("click", () => openModal(null));
 document.getElementById("btnSave").addEventListener("click", saveEvent);
 document.getElementById("btnDelete").addEventListener("click", deleteEvent);
@@ -719,7 +964,7 @@ document.querySelectorAll(".todo-tab").forEach(tab => {
 // ═════════════════════════════════════════════════════════════
 // INIT
 // ═════════════════════════════════════════════════════════════
-subscribeWeek();
+subscribeView();
 renderTodos();
 </script>
 </body>
