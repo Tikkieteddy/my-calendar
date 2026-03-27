@@ -174,16 +174,54 @@
     font-size: .9rem; color: var(--accent-light);
   }
 
+  /* ── Tablet ── */
+  @media (max-width: 768px) {
+    .summary-row { gap: 10px; }
+    .summary-card { padding: 12px; }
+    .summary-card .num { font-size: 1.5rem; }
+    .med-header h1 { font-size: 1.1rem; }
+  }
+
   /* ── Mobile ── */
   @media (max-width: 600px) {
-    .summary-row { flex-direction: column; gap: 8px; }
-    .med-header { padding: 12px 16px; }
-    .person-tabs { padding: 0 16px; }
-    .date-nav { padding: 12px 16px; }
-    .summary-row { padding: 0 16px 12px; }
-    .med-list { padding: 0 16px 16px; }
-    .settings-section { padding: 0 16px 16px; }
-    .register-banner { margin: 0 16px 12px; }
+    .top-nav { padding: 0 8px; height: 38px; }
+    .top-nav a { padding: 6px 12px; font-size: .75rem; }
+    .med-header { padding: 12px 14px; }
+    .med-header h1 { font-size: 1rem; }
+    .person-tabs { padding: 0 14px; }
+    .person-tab { padding: 10px 16px; font-size: .82rem; }
+    .date-nav { padding: 10px 14px; gap: 8px; }
+    .date-nav button { padding: 6px 10px; font-size: .78rem; }
+    .date-label { font-size: .85rem; min-width: 150px; }
+    .summary-row { flex-direction: row; gap: 8px; padding: 0 14px 12px; }
+    .summary-card { padding: 10px 6px; }
+    .summary-card .num { font-size: 1.3rem; }
+    .summary-card .label { font-size: .65rem; }
+    .med-list { padding: 0 14px 16px; }
+    .time-group-header { font-size: .78rem; }
+    .med-card { padding: 10px 12px; gap: 10px; }
+    .med-name { font-size: .85rem; }
+    .med-time-label { font-size: .7rem; }
+    .med-check { width: 24px; height: 24px; }
+    .med-status { font-size: .65rem; padding: 3px 8px; white-space: nowrap; }
+    .taken-time { font-size: .65rem; }
+    .settings-section { padding: 0 14px 16px; }
+    .register-banner { margin: 0 14px 12px; padding: 12px 14px; }
+    .register-banner p { font-size: .78rem; }
+    .register-banner code { font-size: .82rem; }
+  }
+
+  /* ── Small phone ── */
+  @media (max-width: 380px) {
+    .top-nav a { padding: 6px 8px; font-size: .7rem; }
+    .med-header h1 { font-size: .9rem; }
+    .person-tab { padding: 8px 12px; font-size: .75rem; }
+    .date-label { font-size: .78rem; min-width: 120px; }
+    .summary-card .num { font-size: 1.1rem; }
+    .summary-card .label { font-size: .6rem; }
+    .med-card { gap: 8px; padding: 8px 10px; }
+    .med-name { font-size: .8rem; }
+    .med-status { font-size: .6rem; padding: 2px 6px; }
   }
 </style>
 </head>

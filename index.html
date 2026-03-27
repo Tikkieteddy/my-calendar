@@ -348,17 +348,59 @@
     .main-layout { grid-template-columns: 1fr; }
     .todo-panel { border-left: none; border-top: 1px solid var(--border); max-height: 50vh; }
     .header { padding: 10px 12px; flex-wrap: wrap; gap: 6px; }
+    .header h1 { font-size: 1rem; }
     .calendar-wrap { padding: 6px; }
     .calendar { min-width: 460px; grid-template-columns: 40px repeat(7, 1fr); }
     .calendar.daily { min-width: unset; grid-template-columns: 40px 1fr; }
     .month-cell { min-height: 70px; }
     .view-btn { padding: 5px 10px; font-size: .72rem; }
+    .btn-add { padding: 6px 10px; font-size: .78rem; }
   }
   @media (max-width: 600px) {
-    .legend { padding: 6px 10px; gap: 8px; }
-    .cal-label { min-width: 120px; font-size: .78rem; }
-    .month-cell { min-height: 56px; }
-    .month-event { font-size: .55rem; }
+    .top-nav { padding: 0 8px; height: 38px; }
+    .top-nav a { padding: 6px 12px; font-size: .75rem; }
+    .header { position: sticky; top: 38px; padding: 8px 10px; gap: 4px; }
+    .header h1 { font-size: .9rem; }
+    .header-actions { width: 100%; justify-content: space-between; }
+    .storage-badge { display: none; }
+    .view-switcher { order: 1; }
+    .view-btn { padding: 5px 8px; font-size: .68rem; }
+    .cal-nav { order: 2; }
+    .cal-nav button { padding: 5px 8px; font-size: .75rem; }
+    .cal-label { min-width: 90px; font-size: .72rem; }
+    .btn-add { order: 3; padding: 5px 10px; font-size: .75rem; }
+    .legend { padding: 6px 10px; gap: 6px; }
+    .legend-item { font-size: .68rem; }
+    .main-layout { min-height: auto; }
+    .calendar-wrap { padding: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .calendar { min-width: 420px; grid-template-columns: 32px repeat(7, 1fr); }
+    .calendar.daily { min-width: unset; grid-template-columns: 32px 1fr; }
+    .time-slot { font-size: .6rem; padding: 2px 3px; }
+    .day-header { font-size: .68rem; padding: 6px 3px; }
+    .day-header .date-num { font-size: .9rem; width: 24px; height: 24px; line-height: 24px; }
+    .event-card { font-size: .6rem; padding: 2px 4px; }
+    .event-title { font-size: .6rem; }
+    .event-time { font-size: .55rem; }
+    .month-cell { min-height: 50px; padding: 2px; }
+    .month-date { font-size: .65rem; }
+    .month-event { font-size: .52rem; padding: 0 3px; }
+    .month-more { font-size: .52rem; }
+    .todo-panel { max-height: 45vh; }
+    .todo-header { padding: 10px 12px; }
+    .todo-header h2 { font-size: .9rem; }
+    .todo-input-wrap { padding: 8px 12px; }
+    .todo-item { padding: 8px 12px; gap: 8px; }
+    .todo-text { font-size: .8rem; }
+    .todo-meta { font-size: .62rem; }
+    .modal { width: 95vw; padding: 16px; }
+    .modal h2 { font-size: .95rem; }
+  }
+  @media (max-width: 380px) {
+    .top-nav a { padding: 6px 8px; font-size: .7rem; }
+    .header h1 { font-size: .82rem; }
+    .cal-label { min-width: 70px; font-size: .65rem; }
+    .view-btn { padding: 4px 6px; font-size: .62rem; }
+    .btn-add { font-size: .68rem; padding: 4px 8px; }
   }
 </style>
 </head>
