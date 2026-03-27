@@ -18,8 +18,7 @@
     --work: #6c5ce7;
     --health: #00cec9;
     --personal: #fdcb6e;
-    --social: #e17055;
-    --errands: #55efc4;
+    --family: #74b9ff;
     --done-bg: #1e272e;
     --done-text: #636e72;
     --radius: 12px;
@@ -127,8 +126,7 @@
   .event-card.work { background: rgba(108,92,231,.18); border-color: var(--work); color: #b8b0ff; }
   .event-card.health { background: rgba(0,206,201,.15); border-color: var(--health); color: #7fefec; }
   .event-card.personal { background: rgba(253,203,110,.15); border-color: var(--personal); color: #fde68a; }
-  .event-card.social { background: rgba(225,112,85,.15); border-color: var(--social); color: #f0a090; }
-  .event-card.errands { background: rgba(85,239,196,.12); border-color: var(--errands); color: #80f5d4; }
+  .event-card.family { background: rgba(116,185,255,.15); border-color: var(--family); color: #a0cfff; }
   .event-card.done {
     opacity: .4; text-decoration: line-through;
     border-color: var(--done-text) !important;
@@ -184,8 +182,7 @@
   .month-event.work { background: rgba(108,92,231,.18); border-color: var(--work); color: #b8b0ff; }
   .month-event.health { background: rgba(0,206,201,.15); border-color: var(--health); color: #7fefec; }
   .month-event.personal { background: rgba(253,203,110,.15); border-color: var(--personal); color: #fde68a; }
-  .month-event.social { background: rgba(225,112,85,.15); border-color: var(--social); color: #f0a090; }
-  .month-event.errands { background: rgba(85,239,196,.12); border-color: var(--errands); color: #80f5d4; }
+  .month-event.family { background: rgba(116,185,255,.15); border-color: var(--family); color: #a0cfff; }
   .month-event.done { opacity: .4; text-decoration: line-through; }
   .month-more { font-size: .6rem; color: var(--accent-light); cursor: pointer; padding: 0 4px; }
 
@@ -379,8 +376,7 @@
   <div class="legend-item"><div class="legend-dot" style="background:var(--work)"></div> งาน</div>
   <div class="legend-item"><div class="legend-dot" style="background:var(--health)"></div> สุขภาพ</div>
   <div class="legend-item"><div class="legend-dot" style="background:var(--personal)"></div> ส่วนตัว</div>
-  <div class="legend-item"><div class="legend-dot" style="background:var(--social)"></div> สังคม</div>
-  <div class="legend-item"><div class="legend-dot" style="background:var(--errands)"></div> ธุระ</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--family)"></div> ครอบครัว</div>
 </div>
 
 <!-- Main 2-Column -->
@@ -430,8 +426,7 @@
       <option value="work">💼 งาน</option>
       <option value="health">💪 สุขภาพ</option>
       <option value="personal">🏠 ส่วนตัว</option>
-      <option value="social">🎉 สังคม</option>
-      <option value="errands">🛒 ธุระ</option>
+      <option value="family">👨‍👩‍👧 ครอบครัว</option>
     </select>
     <label>หมายเหตุ</label>
     <textarea id="fNote" placeholder="บันทึกเพิ่มเติม (ไม่บังคับ)"></textarea>
@@ -872,7 +867,7 @@ function renderTodos() {
 
     const body = el("div", { className: "todo-body" });
     const text = el("div", { className: "todo-text" });
-    const catColors = { work: "var(--work)", health: "var(--health)", personal: "var(--personal)", social: "var(--social)", errands: "var(--errands)" };
+    const catColors = { work: "var(--work)", health: "var(--health)", personal: "var(--personal)", family: "var(--family)" };
     if (todo.category && catColors[todo.category]) {
       const dot = el("span");
       dot.style.cssText = "display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:" + catColors[todo.category];
