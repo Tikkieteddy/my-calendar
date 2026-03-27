@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<title>Seed Medicine Data</title>
+<style>
+  body { background: #0f1117; color: #e4e6f0; font-family: sans-serif; padding: 40px; }
+  button { background: #6c5ce7; color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1rem; cursor: pointer; }
+  button:hover { background: #a29bfe; }
+  pre { background: #1a1d27; padding: 16px; border-radius: 8px; margin-top: 16px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>💊 Seed Medicine Data</h1>
+<p>กดปุ่มเพื่อเพิ่มรายการยาลง Firestore (ทำครั้งเดียว)</p>
+<button onclick="seed()">🌱 Seed Now</button>
+<pre id="log">รอกดปุ่ม...</pre>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyATsvP-0r43u_lW5VzqjX2nOaAo8EGuuP0",
+  authDomain: "my-calendar-b3df1.firebaseapp.com",
+  projectId: "my-calendar-b3df1",
+  storageBucket: "my-calendar-b3df1.firebasestorage.app",
+  messagingSenderId: "678264206908",
+  appId: "1:678264206908:web:41c2b7b19b4de0c9a6f539",
+});
+const db = firebase.firestore();
+
+const medicines = [
+  { person: "aor", name: "ยาความดัน", time: "07:00", active: true },
+  { person: "aor", name: "ยาขับปัสสาวะ", time: "07:00", active: true },
+  { person: "aor", name: "ยาลดไขมัน", time: "18:30", active: true },
+  { person: "tik", name: "ยาบำรุงตับ", time: "07:00", active: true },
+  { person: "tik", name: "Melol (เช้า)", time: "08:00", active: true },
+  { person: "tik", name: "Melol (ค่ำ)", time: "20:00", active: true },
+  { person: "tik", name: "ยาลดคอเรสเตอรอล", time: "20:30", active: true },
+];
+
+const users = [
+  { person: "tik", lineUserId: "U4a67765df47684ef2b6853e69b4d623b" },
+];
+
+async function seed() {
+  const log = document.getElementById("log");
+  log.textContent = "กำลัง seed...\n";
+
+  // Check if already seeded
+  const existing = await db.collection("medicines").limit(1).get();
+  if (!existing.empty) {
+    log.textContent += "⚠️ มีข้อมูลยาอยู่แล้ว — ลบข้อมูลเก่าก่อน...\n";
+    const allMeds = await db.collection("medicines").get();
+    for (const doc of allMeds.docs) {
+      await doc.ref.delete();
+      log.textContent += `  🗑️ ลบ: ${doc.data().name}\n`;
+    }
+  }
+
+  for (const med of medicines) {
+    const ref = await db.collection("medicines").add({
+      ...med,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    log.textContent += `✅ ${med.person}: ${med.name} (${med.time}) → ${ref.id}\n`;
+  }
+
+  for (const user of users) {
+    const existingUser = await db.collection("med_users")
+      .where("person", "==", user.person).limit(1).get();
+    if (existingUser.empty) {
+      const ref = await db.collection("med_users").add({
+        ...user,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      log.textContent += `✅ User ${user.person} → ${ref.id}\n`;
+    } else {
+      log.textContent += `⏭️ User ${user.person} already registered\n`;
+    }
+  }
+
+  log.textContent += "\n🎉 Seed complete! กลับไปหน้าเตือนกินยาได้เลย";
+}
+</script>
+</body>
+</html>

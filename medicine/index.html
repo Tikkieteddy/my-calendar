@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>💊 เตือนกินยา</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #252836;
+    --border: #2e3140;
+    --text: #e4e6f0;
+    --text2: #8b8fa3;
+    --accent: #6c5ce7;
+    --accent-light: #a29bfe;
+    --green: #00cec9;
+    --green-light: #55efc4;
+    --orange: #fdcb6e;
+    --red: #ff7675;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 4px 24px rgba(0,0,0,.3);
+  }
+  html { font-size: 15px; }
+  body {
+    font-family: 'Segoe UI', -apple-system, system-ui, sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+  }
+
+  /* ── Top Nav ── */
+  .top-nav {
+    display: flex; align-items: center; gap: 0;
+    background: #13151c; border-bottom: 1px solid var(--border);
+    padding: 0 20px; height: 40px;
+  }
+  .top-nav a {
+    color: var(--text2); text-decoration: none; font-size: .82rem;
+    padding: 8px 18px; border-bottom: 2px solid transparent;
+    transition: all .15s; font-weight: 600; height: 100%;
+    display: flex; align-items: center;
+  }
+  .top-nav a:hover { color: var(--text); background: rgba(255,255,255,.03); }
+  .top-nav a.active { color: var(--accent-light); border-bottom-color: var(--accent); }
+
+  /* ── Header ── */
+  .med-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 24px; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .med-header h1 { font-size: 1.3rem; font-weight: 700; }
+  .med-header h1 span { color: var(--accent-light); }
+
+  /* ── Person Tabs ── */
+  .person-tabs {
+    display: flex; gap: 0; padding: 0 24px;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+  }
+  .person-tab {
+    padding: 12px 28px; font-size: .9rem; font-weight: 600;
+    color: var(--text2); cursor: pointer; border: none; background: none;
+    border-bottom: 3px solid transparent; transition: all .15s;
+  }
+  .person-tab:hover { color: var(--text); }
+  .person-tab.active { color: var(--accent-light); border-bottom-color: var(--accent); }
+
+  /* ── Date Nav ── */
+  .date-nav {
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; padding: 16px 24px;
+  }
+  .date-nav button {
+    background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 8px 14px; cursor: pointer;
+    font-size: .85rem; transition: all .15s;
+  }
+  .date-nav button:hover { background: var(--accent); border-color: var(--accent); }
+  .date-label { font-size: 1rem; color: var(--text); font-weight: 600; min-width: 200px; text-align: center; }
+
+  /* ── Summary Cards ── */
+  .summary-row {
+    display: flex; gap: 16px; padding: 0 24px 16px;
+  }
+  .summary-card {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; text-align: center;
+  }
+  .summary-card .num { font-size: 1.8rem; font-weight: 700; }
+  .summary-card .label { font-size: .75rem; color: var(--text2); margin-top: 4px; }
+  .summary-card.taken .num { color: var(--green-light); }
+  .summary-card.pending .num { color: var(--orange); }
+  .summary-card.missed .num { color: var(--red); }
+
+  /* ── Medicine List ── */
+  .med-list { padding: 0 24px 24px; }
+  .time-group { margin-bottom: 20px; }
+  .time-group-header {
+    font-size: .82rem; font-weight: 700; color: var(--accent-light);
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .med-card {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 18px; margin-bottom: 8px;
+    transition: all .15s;
+  }
+  .med-card:hover { border-color: var(--accent); }
+  .med-card.taken { border-color: var(--green); background: rgba(0,206,201,.06); }
+  .med-card.taken .med-name { text-decoration: line-through; color: var(--text2); }
+
+  .med-check {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid var(--border); cursor: pointer;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    background: transparent; transition: all .15s; font-size: 0;
+  }
+  .med-check:hover { border-color: var(--green); }
+  .med-check.checked {
+    background: var(--green); border-color: var(--green);
+    font-size: .8rem;
+  }
+  .med-check.checked::after { content: "✓"; color: #fff; font-weight: 700; }
+
+  .med-info { flex: 1; }
+  .med-name { font-size: .95rem; font-weight: 600; }
+  .med-time-label { font-size: .75rem; color: var(--text2); margin-top: 2px; }
+  .med-status {
+    font-size: .72rem; padding: 4px 10px; border-radius: 12px;
+    font-weight: 600;
+  }
+  .med-status.taken { background: rgba(85,239,196,.15); color: var(--green-light); }
+  .med-status.waiting { background: rgba(253,203,110,.12); color: var(--orange); }
+  .med-status.overdue { background: rgba(255,118,117,.12); color: var(--red); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.5} }
+
+  .taken-time { font-size: .7rem; color: var(--green); margin-top: 4px; }
+
+  /* ── Settings Section ── */
+  .settings-section {
+    padding: 0 24px 24px;
+  }
+  .settings-toggle {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 18px;
+    cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+  }
+  .settings-toggle:hover { border-color: var(--accent); }
+  .settings-body {
+    background: var(--surface); border: 1px solid var(--border);
+    border-top: none; border-radius: 0 0 var(--radius) var(--radius);
+    padding: 14px 18px; display: none;
+  }
+  .settings-body.open { display: block; }
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid rgba(46,49,64,.4);
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-label { font-size: .82rem; }
+  .setting-value { font-size: .82rem; color: var(--accent-light); }
+
+  /* ── Register Banner ── */
+  .register-banner {
+    background: rgba(108,92,231,.1); border: 1px solid var(--accent);
+    border-radius: var(--radius); padding: 16px 20px; margin: 0 24px 16px;
+    text-align: center;
+  }
+  .register-banner p { font-size: .85rem; color: var(--text2); margin-bottom: 8px; }
+  .register-banner code {
+    background: var(--surface2); padding: 4px 10px; border-radius: 6px;
+    font-size: .9rem; color: var(--accent-light);
+  }
+
+  /* ── Mobile ── */
+  @media (max-width: 600px) {
+    .summary-row { flex-direction: column; gap: 8px; }
+    .med-header { padding: 12px 16px; }
+    .person-tabs { padding: 0 16px; }
+    .date-nav { padding: 12px 16px; }
+    .summary-row { padding: 0 16px 12px; }
+    .med-list { padding: 0 16px 16px; }
+    .settings-section { padding: 0 16px 16px; }
+    .register-banner { margin: 0 16px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top Navigation -->
+<nav class="top-nav">
+  <a href="/my-calendar/">📅 ปฏิทินส่วนตัว</a>
+  <a href="/my-calendar/medicine/" class="active">💊 เตือนกินยา</a>
+</nav>
+
+<!-- Header -->
+<div class="med-header">
+  <h1>💊 <span>เตือน</span>กินยา</h1>
+</div>
+
+<!-- Person Tabs -->
+<div class="person-tabs">
+  <button class="person-tab active" data-person="aor">🩷 Aor</button>
+  <button class="person-tab" data-person="tik">💙 Tik</button>
+</div>
+
+<!-- Date Navigation -->
+<div class="date-nav">
+  <button id="prevDay">◀</button>
+  <span class="date-label" id="dateLabel"></span>
+  <button id="nextDay">▶</button>
+  <button id="todayBtn" style="margin-left:8px">วันนี้</button>
+</div>
+
+<!-- Summary -->
+<div class="summary-row">
+  <div class="summary-card taken">
+    <div class="num" id="takenCount">0</div>
+    <div class="label">กินแล้ว ✅</div>
+  </div>
+  <div class="summary-card pending">
+    <div class="num" id="pendingCount">0</div>
+    <div class="label">รอกิน ⏳</div>
+  </div>
+  <div class="summary-card missed">
+    <div class="num" id="missedCount">0</div>
+    <div class="label">เลยเวลา ⚠️</div>
+  </div>
+</div>
+
+<!-- Register Banner -->
+<div class="register-banner" id="registerBanner" style="display:none">
+  <p>ยังไม่ได้ลงทะเบียน LINE สำหรับคนนี้ — ให้เขาพิมพ์ข้อความนี้ในแชท LINE Bot:</p>
+  <code id="registerCmd">ลงทะเบียน Aor</code>
+</div>
+
+<!-- Medicine List -->
+<div class="med-list" id="medList"></div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ═════════════════════════════════════════════════════════════
+// Firebase Config
+// ═════════════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyATsvP-0r43u_lW5VzqjX2nOaAo8EGuuP0",
+  authDomain: "my-calendar-b3df1.firebaseapp.com",
+  projectId: "my-calendar-b3df1",
+  storageBucket: "my-calendar-b3df1.firebasestorage.app",
+  messagingSenderId: "678264206908",
+  appId: "1:678264206908:web:41c2b7b19b4de0c9a6f539",
+  measurementId: "G-DXK08FJ587"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ═════════════════════════════════════════════════════════════
+// State
+// ═════════════════════════════════════════════════════════════
+let currentPerson = "aor";
+let currentDate = new Date();
+let medicines = [];    // schedule from Firestore
+let logs = [];         // daily logs from Firestore
+let unsubMeds = null;
+let unsubLogs = null;
+
+// ═════════════════════════════════════════════════════════════
+// Utilities
+// ═════════════════════════════════════════════════════════════
+function fmtDate(d) {
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function fmtDateThai(d) {
+  const days = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
+  const months = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+  return "วัน" + days[d.getDay()] + "ที่ " + d.getDate() + " " + months[d.getMonth()] + " " + (d.getFullYear() + 543);
+}
+function addDays(d, n) { const dt = new Date(d); dt.setDate(dt.getDate() + n); return dt; }
+function isToday(d) { return fmtDate(d) === fmtDate(new Date()); }
+function nowMinutes() {
+  const n = new Date();
+  return n.getHours() * 60 + n.getMinutes();
+}
+function timeToMinutes(t) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+// ═════════════════════════════════════════════════════════════
+// Subscribe to Firestore
+// ═════════════════════════════════════════════════════════════
+function subscribe() {
+  if (unsubMeds) unsubMeds();
+  if (unsubLogs) unsubLogs();
+
+  const dateStr = fmtDate(currentDate);
+
+  // Subscribe to medicine schedules for this person
+  unsubMeds = db.collection("medicines")
+    .where("person", "==", currentPerson)
+    .where("active", "==", true)
+    .onSnapshot(snap => {
+      medicines = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      medicines.sort((a, b) => a.time.localeCompare(b.time));
+      render();
+    }, err => console.error("Medicines error:", err));
+
+  // Subscribe to logs for this person + date
+  unsubLogs = db.collection("medicine_logs")
+    .where("person", "==", currentPerson)
+    .where("date", "==", dateStr)
+    .onSnapshot(snap => {
+      logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      render();
+    }, err => console.error("Logs error:", err));
+}
+
+// ═════════════════════════════════════════════════════════════
+// Toggle medicine taken
+// ═════════════════════════════════════════════════════════════
+async function toggleMedicine(medicineId, medicineName, time) {
+  const dateStr = fmtDate(currentDate);
+  const existing = logs.find(l => l.medicineId === medicineId);
+
+  if (existing) {
+    if (existing.taken) {
+      // Un-mark
+      await db.collection("medicine_logs").doc(existing.id).update({
+        taken: false, takenAt: null
+      });
+    } else {
+      // Mark as taken
+      await db.collection("medicine_logs").doc(existing.id).update({
+        taken: true, takenAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  } else {
+    // Create new log entry (mark as taken)
+    await db.collection("medicine_logs").add({
+      person: currentPerson,
+      medicineId: medicineId,
+      medicineName: medicineName,
+      date: dateStr,
+      time: time,
+      taken: true,
+      takenAt: firebase.firestore.FieldValue.serverTimestamp(),
+      reminded: false,
+      lastRemindedAt: null
+    });
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// Render
+// ═════════════════════════════════════════════════════════════
+function render() {
+  const dateStr = fmtDate(currentDate);
+  document.getElementById("dateLabel").textContent = fmtDateThai(currentDate);
+
+  // Group medicines by time
+  const groups = {};
+  const timeLabels = { "07:00": "🌅 เช้า 07:00", "07:30": "🌅 เช้า 07:30", "08:00": "☀️ เช้า 08:00",
+    "12:00": "🌤️ เที่ยง 12:00", "12:30": "🌤️ เที่ยง 12:30",
+    "18:00": "🌇 เย็น 18:00", "18:30": "🌇 เย็น 18:30",
+    "20:00": "🌙 ค่ำ 20:00", "20:30": "🌙 ค่ำ 20:30",
+    "21:00": "🌙 ค่ำ 21:00" };
+
+  for (const med of medicines) {
+    if (!groups[med.time]) groups[med.time] = [];
+    groups[med.time].push(med);
+  }
+
+  const list = document.getElementById("medList");
+  list.innerHTML = "";
+
+  let takenCount = 0, pendingCount = 0, missedCount = 0;
+  const current = nowMinutes();
+
+  const sortedTimes = Object.keys(groups).sort();
+
+  for (const time of sortedTimes) {
+    const meds = groups[time];
+    const grp = document.createElement("div");
+    grp.className = "time-group";
+
+    const header = document.createElement("div");
+    header.className = "time-group-header";
+    header.textContent = timeLabels[time] || ("⏰ " + time);
+    grp.appendChild(header);
+
+    for (const med of meds) {
+      const log = logs.find(l => l.medicineId === med.id);
+      const taken = log && log.taken;
+      const medMinutes = timeToMinutes(time);
+      const overdue = !taken && isToday(currentDate) && current > medMinutes + 30;
+      const waiting = !taken && !overdue;
+
+      if (taken) takenCount++;
+      else if (overdue) missedCount++;
+      else pendingCount++;
+
+      const card = document.createElement("div");
+      card.className = "med-card" + (taken ? " taken" : "");
+
+      const check = document.createElement("div");
+      check.className = "med-check" + (taken ? " checked" : "");
+      check.addEventListener("click", () => toggleMedicine(med.id, med.name, med.time));
+
+      const info = document.createElement("div");
+      info.className = "med-info";
+      info.innerHTML = '<div class="med-name">' + escHtml(med.name) + '</div>' +
+        '<div class="med-time-label">⏰ ' + med.time + ' น.</div>' +
+        (taken && log.takenAt ? '<div class="taken-time">✅ กินเมื่อ ' + formatTimestamp(log.takenAt) + '</div>' : '');
+
+      const status = document.createElement("div");
+      if (taken) {
+        status.className = "med-status taken";
+        status.textContent = "กินแล้ว ✅";
+      } else if (overdue) {
+        status.className = "med-status overdue";
+        status.textContent = "เลยเวลา ⚠️";
+      } else {
+        status.className = "med-status waiting";
+        status.textContent = "รอกิน ⏳";
+      }
+
+      card.appendChild(check);
+      card.appendChild(info);
+      card.appendChild(status);
+      grp.appendChild(card);
+    }
+
+    list.appendChild(grp);
+  }
+
+  if (medicines.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text2)">ยังไม่มีรายการยา — กำลังโหลด...</div>';
+  }
+
+  document.getElementById("takenCount").textContent = takenCount;
+  document.getElementById("pendingCount").textContent = pendingCount;
+  document.getElementById("missedCount").textContent = missedCount;
+}
+
+function escHtml(s) { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
+
+function formatTimestamp(ts) {
+  if (!ts) return "";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0") + " น.";
+}
+
+// ═════════════════════════════════════════════════════════════
+// Navigation
+// ═════════════════════════════════════════════════════════════
+document.getElementById("prevDay").addEventListener("click", () => {
+  currentDate = addDays(currentDate, -1);
+  subscribe();
+});
+document.getElementById("nextDay").addEventListener("click", () => {
+  currentDate = addDays(currentDate, 1);
+  subscribe();
+});
+document.getElementById("todayBtn").addEventListener("click", () => {
+  currentDate = new Date();
+  subscribe();
+});
+
+// Person tabs
+document.querySelectorAll(".person-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".person-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    currentPerson = tab.dataset.person;
+    subscribe();
+  });
+});
+
+// Auto-refresh every 60 seconds to update overdue status
+setInterval(() => { if (isToday(currentDate)) render(); }, 60000);
+
+// ═════════════════════════════════════════════════════════════
+// INIT
+// ═════════════════════════════════════════════════════════════
+subscribe();
+</script>
+</body>
+</html>

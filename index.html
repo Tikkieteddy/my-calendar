@@ -31,12 +31,27 @@
     background: var(--bg); color: var(--text); min-height: 100vh;
   }
 
+  /* ── Top Nav ── */
+  .top-nav {
+    display: flex; align-items: center; gap: 0;
+    background: #13151c; border-bottom: 1px solid var(--border);
+    padding: 0 20px; height: 40px;
+  }
+  .top-nav a {
+    color: var(--text2); text-decoration: none; font-size: .82rem;
+    padding: 8px 18px; border-bottom: 2px solid transparent;
+    transition: all .15s; font-weight: 600; height: 100%;
+    display: flex; align-items: center;
+  }
+  .top-nav a:hover { color: var(--text); background: rgba(255,255,255,.03); }
+  .top-nav a.active { color: var(--accent-light); border-bottom-color: var(--accent); }
+
   /* ── Header ── */
   .header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 20px; background: var(--surface);
     border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; z-index: 100;
+    position: sticky; top: 40px; z-index: 100;
   }
   .header h1 { font-size: 1.2rem; font-weight: 700; }
   .header h1 span { color: var(--accent-light); }
@@ -74,7 +89,7 @@
     display: grid;
     grid-template-columns: 1fr 340px;
     gap: 0;
-    min-height: calc(100vh - 56px);
+    min-height: calc(100vh - 96px);
   }
 
   /* ── Legend ── */
@@ -348,6 +363,12 @@
 </style>
 </head>
 <body>
+
+<!-- Top Navigation -->
+<nav class="top-nav">
+  <a href="/my-calendar/" class="active">📅 ปฏิทินส่วนตัว</a>
+  <a href="/my-calendar/medicine/">💊 เตือนกินยา</a>
+</nav>
 
 <!-- Header -->
 <div class="header">
