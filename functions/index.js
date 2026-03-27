@@ -29,10 +29,10 @@ const lineClient = new line.messagingApi.MessagingApiClient({
 // ---------------------------------------------------------------------------
 // Category constants
 // ---------------------------------------------------------------------------
-const CATEGORY_MAP = { "งาน": "work", "สุขภาพ": "health", "ส่วนตัว": "personal", "สังคม": "social", "ธุระ": "errands" };
-const CATEGORY_TH = { work: "งาน", health: "สุขภาพ", personal: "ส่วนตัว", social: "สังคม", errands: "ธุระ" };
-const CATEGORY_EMOJI = { work: "🟣", health: "🟢", personal: "🟡", social: "🔴", errands: "🟩" };
-const CATEGORY_LABELS = ["งาน", "สุขภาพ", "ส่วนตัว", "สังคม", "ธุระ"];
+const CATEGORY_MAP = { "งาน": "work", "สุขภาพ": "health", "ส่วนตัว": "personal", "ครอบครัว": "family" };
+const CATEGORY_TH = { work: "งาน", health: "สุขภาพ", personal: "ส่วนตัว", family: "ครอบครัว" };
+const CATEGORY_EMOJI = { work: "🟣", health: "🟢", personal: "🟡", family: "🔵" };
+const CATEGORY_LABELS = ["งาน", "สุขภาพ", "ส่วนตัว", "ครอบครัว"];
 
 function makeCategoryQuickReply() {
   return {
@@ -396,8 +396,7 @@ async function handleCategorySelection(text, replyToken) {
   // Find the most recent event with category "pending_category"
   const snap = await db.collection("events")
     .where("category", "==", "pending_category")
-    .orderBy("createdAt", "desc")
-    .limit(1)
+    .limit(10)
     .get();
 
   if (snap.empty) {
@@ -408,7 +407,13 @@ async function handleCategorySelection(text, replyToken) {
     return;
   }
 
-  const doc = snap.docs[0];
+  // Sort by createdAt desc in code (avoid needing composite index)
+  const sorted = snap.docs.sort((a, b) => {
+    const aTime = a.data().createdAt?.toDate?.()?.getTime() || 0;
+    const bTime = b.data().createdAt?.toDate?.()?.getTime() || 0;
+    return bTime - aTime;
+  });
+  const doc = sorted[0];
   const data = doc.data();
   await doc.ref.update({ category: categoryEn });
 
@@ -434,15 +439,21 @@ async function handleDoneMessage(text, replyToken) {
   // Find pending/todo events that match the title
   const snap = await db.collection("events")
     .where("status", "in", ["pending", "todo"])
-    .orderBy("createdAt", "desc")
-    .limit(20)
+    .limit(50)
     .get();
+
+  // Sort by createdAt desc in code
+  const docs = snap.docs.sort((a, b) => {
+    const aTime = a.data().createdAt?.toDate?.()?.getTime() || 0;
+    const bTime = b.data().createdAt?.toDate?.()?.getTime() || 0;
+    return bTime - aTime;
+  });
 
   let matchedDoc = null;
 
   if (searchTitle) {
     // Try to find by title match
-    for (const doc of snap.docs) {
+    for (const doc of docs) {
       const data = doc.data();
       if (data.title && data.title.toLowerCase().includes(searchTitle.toLowerCase())) {
         matchedDoc = doc;
@@ -452,8 +463,8 @@ async function handleDoneMessage(text, replyToken) {
   }
 
   // If no title match, use the most recent pending/todo item
-  if (!matchedDoc && !snap.empty) {
-    matchedDoc = snap.docs[0];
+  if (!matchedDoc && docs.length > 0) {
+    matchedDoc = docs[0];
   }
 
   if (!matchedDoc) {
