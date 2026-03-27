@@ -7,21 +7,21 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #252836;
-    --border: #2e3140;
-    --text: #e4e6f0;
-    --text2: #8b8fa3;
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --surface2: #f5f6fa;
+    --border: #e0e3ea;
+    --text: #2d3436;
+    --text2: #636e72;
     --accent: #6c5ce7;
-    --accent-light: #a29bfe;
-    --green: #00cec9;
-    --green-light: #55efc4;
-    --orange: #fdcb6e;
-    --red: #ff7675;
+    --accent-light: #5a4bd1;
+    --green: #00b894;
+    --green-light: #00b894;
+    --orange: #e17055;
+    --red: #d63031;
     --radius: 12px;
     --radius-sm: 8px;
-    --shadow: 0 4px 24px rgba(0,0,0,.3);
+    --shadow: 0 2px 12px rgba(0,0,0,.08);
   }
   html { font-size: 15px; }
   body {
@@ -32,7 +32,7 @@
   /* ── Top Nav ── */
   .top-nav {
     display: flex; align-items: center; gap: 0;
-    background: #13151c; border-bottom: 1px solid var(--border);
+    background: #ffffff; border-bottom: 1px solid var(--border);
     padding: 0 20px; height: 40px;
   }
   .top-nav a {
@@ -89,9 +89,9 @@
   }
   .summary-card .num { font-size: 1.8rem; font-weight: 700; }
   .summary-card .label { font-size: .75rem; color: var(--text2); margin-top: 4px; }
-  .summary-card.taken .num { color: var(--green-light); }
-  .summary-card.pending .num { color: var(--orange); }
-  .summary-card.missed .num { color: var(--red); }
+  .summary-card.taken .num { color: #00b894; }
+  .summary-card.pending .num { color: #e17055; }
+  .summary-card.missed .num { color: #d63031; }
 
   /* ── Medicine List ── */
   .med-list { padding: 0 24px 24px; }
@@ -108,7 +108,7 @@
     transition: all .15s;
   }
   .med-card:hover { border-color: var(--accent); }
-  .med-card.taken { border-color: var(--green); background: rgba(0,206,201,.06); }
+  .med-card.taken { border-color: var(--green); background: rgba(0,184,148,.08); }
   .med-card.taken .med-name { text-decoration: line-through; color: var(--text2); }
 
   .med-check {
@@ -131,9 +131,9 @@
     font-size: .72rem; padding: 4px 10px; border-radius: 12px;
     font-weight: 600;
   }
-  .med-status.taken { background: rgba(85,239,196,.15); color: var(--green-light); }
-  .med-status.waiting { background: rgba(253,203,110,.12); color: var(--orange); }
-  .med-status.overdue { background: rgba(255,118,117,.12); color: var(--red); animation: pulse 2s infinite; }
+  .med-status.taken { background: rgba(0,184,148,.1); color: #00856a; }
+  .med-status.waiting { background: rgba(225,112,85,.1); color: #c0513a; }
+  .med-status.overdue { background: rgba(214,48,49,.1); color: var(--red); animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.5} }
 
   .taken-time { font-size: .7rem; color: var(--green); margin-top: 4px; }
