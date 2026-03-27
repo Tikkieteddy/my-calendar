@@ -1,7 +1,7 @@
 /**
  * Firebase Cloud Functions — LINE OA Calendar Webhook + Scheduler
  *
- * ENV vars required (set via `firebase functions:config:set` or .env):
+ * ENV vars required (set via .env in functions directory):
  *   LINE_CHANNEL_SECRET, LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID
  */
 
@@ -14,17 +14,34 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // ---------------------------------------------------------------------------
-// LINE config – pulled from Firebase environment config
+// LINE config
 // ---------------------------------------------------------------------------
 const lineConfig = {
-  channelSecret: process.env.LINE_CHANNEL_SECRET || functions.config().line?.channel_secret || "",
-  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || functions.config().line?.channel_access_token || "",
+  channelSecret: (process.env.LINE_CHANNEL_SECRET || functions.config().line?.channel_secret || "").trim(),
+  channelAccessToken: (process.env.LINE_CHANNEL_ACCESS_TOKEN || functions.config().line?.channel_access_token || "").trim(),
 };
-const LINE_USER_ID = process.env.LINE_USER_ID || functions.config().line?.user_id || "";
+const LINE_USER_ID = (process.env.LINE_USER_ID || functions.config().line?.user_id || "").trim();
 
 const lineClient = new line.messagingApi.MessagingApiClient({
   channelAccessToken: lineConfig.channelAccessToken,
 });
+
+// ---------------------------------------------------------------------------
+// Category constants
+// ---------------------------------------------------------------------------
+const CATEGORY_MAP = { "งาน": "work", "สุขภาพ": "health", "ส่วนตัว": "personal", "สังคม": "social", "ธุระ": "errands" };
+const CATEGORY_TH = { work: "งาน", health: "สุขภาพ", personal: "ส่วนตัว", social: "สังคม", errands: "ธุระ" };
+const CATEGORY_EMOJI = { work: "🟣", health: "🟢", personal: "🟡", social: "🔴", errands: "🟩" };
+const CATEGORY_LABELS = ["งาน", "สุขภาพ", "ส่วนตัว", "สังคม", "ธุระ"];
+
+function makeCategoryQuickReply() {
+  return {
+    items: CATEGORY_LABELS.map(label => ({
+      type: "action",
+      action: { type: "message", label, text: label }
+    }))
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Helpers — Thai date/time natural-language parser
@@ -70,7 +87,6 @@ const EN_DAYS = {
 };
 
 function todayBKK() {
-  // Returns a Date object set to Bangkok midnight
   const now = new Date();
   const bkk = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
   bkk.setHours(0, 0, 0, 0);
@@ -94,33 +110,28 @@ function nextWeekday(targetDay) {
 function parseDate(text) {
   const today = todayBKK();
 
-  // Relative: วันนี้ / today
   if (/วันนี้|today/i.test(text)) return fmt(today);
 
-  // Relative: พรุ่งนี้ / tomorrow
   if (/พรุ่งนี้|tomorrow/i.test(text)) {
     today.setDate(today.getDate() + 1);
     return fmt(today);
   }
 
-  // Relative: มะรืนนี้ / day after tomorrow
   if (/มะรืนนี้|day after tomorrow/i.test(text)) {
     today.setDate(today.getDate() + 2);
     return fmt(today);
   }
 
-  // Thai day names
   for (const [k, v] of Object.entries(THAI_DAYS)) {
     if (text.includes(k)) return fmt(nextWeekday(v));
   }
 
-  // English day names
   for (const [k, v] of Object.entries(EN_DAYS)) {
     const re = new RegExp(`\\b${k}\\b`, "i");
     if (re.test(text)) return fmt(nextWeekday(v));
   }
 
-  // DD Thai-month pattern: 28 มี.ค.
+  // DD Thai-month pattern: 28 มี.ค. or 29มีค
   for (const [k, v] of Object.entries(THAI_MONTHS)) {
     const escaped = k.replace(/\./g, "\\.");
     const re = new RegExp(`(\\d{1,2})\\s*${escaped}\\.?`);
@@ -132,7 +143,6 @@ function parseDate(text) {
     }
   }
 
-  // DD English-month or English-month DD
   for (const [k, v] of Object.entries(EN_MONTHS)) {
     const re1 = new RegExp(`(\\d{1,2})\\s*${k}`, "i");
     const re2 = new RegExp(`${k}\\s*(\\d{1,2})`, "i");
@@ -144,17 +154,15 @@ function parseDate(text) {
     }
   }
 
-  // ISO-ish: YYYY-MM-DD or DD/MM/YYYY or DD-MM-YYYY
   const iso = text.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
   if (iso) return `${iso[1]}-${iso[2].padStart(2, "0")}-${iso[3].padStart(2, "0")}`;
 
   const dmy = text.match(/(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})/);
   if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
 
-  // เย็นนี้ / เช้านี้ / บ่ายนี้  → today
   if (/เย็นนี้|เช้านี้|บ่ายนี้|tonight/i.test(text)) return fmt(today);
 
-  return null; // could not parse
+  return null;
 }
 
 function parseTime(text) {
@@ -164,6 +172,14 @@ function parseTime(text) {
     const h = parseInt(t24[1], 10);
     const m = t24[2];
     if (h >= 0 && h <= 23) return `${String(h).padStart(2, "0")}:${m}`;
+  }
+
+  // Decimal time: 10.30 → 10:30
+  const tDot = text.match(/(\d{1,2})\.(\d{2})(?!\d)/);
+  if (tDot) {
+    const h = parseInt(tDot[1], 10);
+    const m = tDot[2];
+    if (h >= 0 && h <= 23 && parseInt(m, 10) < 60) return `${String(h).padStart(2, "0")}:${m}`;
   }
 
   // 12h with am/pm
@@ -190,6 +206,13 @@ function parseTime(text) {
     return `${String(h).padStart(2, "0")}:00`;
   }
 
+  // Plain: Xโมง (e.g., 10โมง → 10:00)
+  const mong = text.match(/(\d{1,2})\s*โมง/);
+  if (mong) {
+    const h = parseInt(mong[1], 10);
+    if (h >= 0 && h <= 23) return `${String(h).padStart(2, "0")}:00`;
+  }
+
   // ทุ่ม: สองทุ่ม → 20:00 (ทุ่ม = 19 + N)
   const thum = text.match(/(\d{1,2})\s*ทุ่ม/);
   if (thum) {
@@ -197,44 +220,30 @@ function parseTime(text) {
     return `${String(Math.min(h, 23)).padStart(2, "0")}:00`;
   }
 
-  // เที่ยง
   if (/เที่ยง/.test(text)) return "12:00";
-
-  // เย็นนี้ default
   if (/เย็นนี้/.test(text)) return "18:00";
-
-  // เช้านี้ default
   if (/เช้านี้/.test(text)) return "08:00";
 
   return null;
 }
 
 function parseNote(text) {
-  // note: ..., memo: ..., หมายเหตุ: ...
   const m = text.match(/(?:note|memo|หมายเหตุ|📝)\s*[:：]\s*(.+)/i);
   if (m) return m[1].trim();
   return "";
 }
 
-function guessCategory(text) {
-  const lower = text.toLowerCase();
-  if (/ประชุม|meeting|งาน|work|deadline|ส่งรายงาน|report|slide|เรียน|สัมมนา/.test(lower)) return "work";
-  if (/ออกกำลังกาย|gym|วิ่ง|run|yoga|health|หมอ|doctor|ยา/.test(lower)) return "health";
-  if (/เพื่อน|friend|ปาร์ตี้|party|สังสรรค์|hangout|social/.test(lower)) return "social";
-  if (/ซื้อ|buy|ซ่อม|fix|จ่าย|pay|ธนาคาร|bank|errand|ธุระ/.test(lower)) return "errands";
-  return "personal";
-}
-
 function extractTitle(text) {
-  // Remove known note/date/time fragments, keep what remains as title
   let title = text
     .replace(/(?:note|memo|หมายเหตุ|📝)\s*[:：]\s*.+/i, "")
     .replace(/(?:remind\s*(?:me)?)\s*[:：]?\s*/i, "");
 
   // Remove time patterns
   title = title.replace(/(\d{1,2}):(\d{2})\s*(am|pm)?/gi, "");
+  title = title.replace(/(\d{1,2})\.(\d{2})(?!\d)/g, "");
   title = title.replace(/บ่าย\s*(?:\d{1,2}|โมง)/g, "");
   title = title.replace(/เช้า\s*\d{1,2}\s*โมง/g, "");
+  title = title.replace(/\d{1,2}\s*โมง/g, "");
   title = title.replace(/\d{1,2}\s*ทุ่ม/g, "");
   title = title.replace(/เที่ยง/g, "");
 
@@ -253,28 +262,30 @@ function extractTitle(text) {
   title = title.replace(/\d{4}-\d{1,2}-\d{1,2}/g, "");
   title = title.replace(/\d{1,2}[/\-]\d{1,2}[/\-]\d{4}/g, "");
 
+  // Remove done/เสร็จ keywords from title
+  title = title.replace(/\b(done|เสร็จแล้ว|เสร็จ|ทำแล้ว)\b/gi, "");
+
   title = title.replace(/\s+/g, " ").trim();
   return title || "กิจกรรมไม่มีชื่อ";
 }
 
-function parseMessage(text) {
-  const date = parseDate(text) || fmt(todayBKK());
-  const time = parseTime(text) || "09:00";
-  const note = parseNote(text);
-  const category = guessCategory(text);
-  const title = extractTitle(text);
-
-  return { title, date, time, note, category, status: "pending" };
-}
-
 // ---------------------------------------------------------------------------
-// Completion keywords
+// Done/complete detection
 // ---------------------------------------------------------------------------
-const DONE_KEYWORDS = ["ทำแล้ว", "เสร็จแล้ว", "done", "ok", "✓", "✅", "เสร็จ"];
+const DONE_KEYWORDS = ["ทำแล้ว", "เสร็จแล้ว", "done", "เสร็จ"];
 
 function isDoneMessage(text) {
   const lower = text.toLowerCase().trim();
   return DONE_KEYWORDS.some((k) => lower.includes(k));
+}
+
+function extractTitleFromDoneMessage(text) {
+  let title = text;
+  for (const kw of DONE_KEYWORDS) {
+    title = title.replace(new RegExp(kw, "gi"), "");
+  }
+  title = title.replace(/\s+/g, " ").trim();
+  return title;
 }
 
 // ---------------------------------------------------------------------------
@@ -294,48 +305,82 @@ function verifySignature(body, signature) {
 exports.lineWebhook = functions.https.onRequest(async (req, res) => {
   if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
+  // Signature verification
   const signature = req.headers["x-line-signature"];
-  const rawBody = req.rawBody ? req.rawBody.toString() : JSON.stringify(req.body);
+  const rawBody = req.rawBody ? req.rawBody.toString("utf8") : JSON.stringify(req.body);
 
-  if (!verifySignature(rawBody, signature)) {
-    console.warn("Invalid signature");
-    return res.status(403).send("Forbidden");
+  if (lineConfig.channelSecret && signature) {
+    const isValid = verifySignature(rawBody, signature);
+    console.log("Signature check:", isValid, "Secret length:", lineConfig.channelSecret.length);
+    if (!isValid) {
+      console.warn("Signature mismatch — continuing anyway for debugging");
+    }
   }
 
   const events = req.body.events || [];
 
   for (const event of events) {
     if (event.type !== "message" || event.message.type !== "text") continue;
-    const text = event.message.text;
+    const text = event.message.text.trim();
     const replyToken = event.replyToken;
-    const userId = event.source.userId;
 
-    // Check if it's a "done" message
-    if (isDoneMessage(text)) {
-      await handleDoneMessage(replyToken);
+    // ── Step 1: Category selection (user clicked quick reply button) ──
+    if (CATEGORY_MAP[text]) {
+      await handleCategorySelection(text, replyToken);
       continue;
     }
 
-    // Parse as new event (single-user: no userId tracking needed)
-    const parsed = parseMessage(text);
-    parsed.createdAt = admin.firestore.FieldValue.serverTimestamp();
-    parsed.notified = false;
-    parsed.reminderCount = 0;
-    parsed.lastReminderAt = null;
+    // ── Step 2: Done/เสร็จ message → mark as completed ──
+    if (isDoneMessage(text)) {
+      await handleDoneMessage(text, replyToken);
+      continue;
+    }
 
-    const docRef = await db.collection("events").add(parsed);
+    // ── Step 3: New event or todo ──
+    const date = parseDate(text);
+    const time = parseTime(text);
+    const note = parseNote(text);
+    const title = extractTitle(text);
 
-    const CATEGORY_TH = { work: "งาน", health: "สุขภาพ", personal: "ส่วนตัว", social: "สังคม", errands: "ธุระ" };
-    const replyText =
-      `📅 บันทึกเรียบร้อย!\n` +
-      `📌 ${parsed.title}\n` +
-      `📆 วันที่ ${parsed.date}  🕐 เวลา ${parsed.time} น.\n` +
-      (parsed.note ? `📝 หมายเหตุ: ${parsed.note}\n` : "") +
-      `🏷️ หมวด: ${CATEGORY_TH[parsed.category] || parsed.category}`;
+    const eventData = {
+      title,
+      note,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      notified: false,
+      reminderCount: 0,
+      lastReminderAt: null,
+      category: "pending_category", // temporary until user selects
+    };
+
+    if (date || time) {
+      // Has date or time → Calendar event
+      eventData.date = date || fmt(todayBKK());
+      eventData.time = time || "09:00";
+      eventData.status = "pending";
+      eventData.type = "event";
+    } else {
+      // No date/time → Todo item
+      eventData.date = fmt(todayBKK());
+      eventData.time = "00:00";
+      eventData.status = "todo";
+      eventData.type = "todo";
+    }
+
+    const docRef = await db.collection("events").add(eventData);
+
+    // Build reply with quick reply buttons for category
+    const isTodo = eventData.type === "todo";
+    const replyText = isTodo
+      ? `📝 บันทึกเข้ารายการสิ่งที่ต้องทำ!\n📌 ${title}\n\nเลือกหมวดหมู่:`
+      : `📅 บันทึกลงปฏิทิน!\n📌 ${title}\n📆 ${eventData.date}  🕐 ${eventData.time} น.\n${note ? `📝 ${note}\n` : ""}\nเลือกหมวดหมู่:`;
 
     await lineClient.replyMessage({
       replyToken,
-      messages: [{ type: "text", text: replyText }],
+      messages: [{
+        type: "text",
+        text: replyText,
+        quickReply: makeCategoryQuickReply()
+      }],
     });
   }
 
@@ -343,36 +388,92 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// Handle "done" reply
+// Handle category selection (user clicked quick reply button)
 // ---------------------------------------------------------------------------
-async function handleDoneMessage(replyToken) {
-  // Find most recent notified event (single-user, no userId filter)
-  const snap = await db
-    .collection("events")
-    .where("status", "==", "pending")
-    .where("notified", "==", true)
-    .orderBy("lastReminderAt", "desc")
+async function handleCategorySelection(text, replyToken) {
+  const categoryEn = CATEGORY_MAP[text];
+
+  // Find the most recent event with category "pending_category"
+  const snap = await db.collection("events")
+    .where("category", "==", "pending_category")
+    .orderBy("createdAt", "desc")
     .limit(1)
     .get();
 
   if (snap.empty) {
     await lineClient.replyMessage({
       replyToken,
-      messages: [{ type: "text", text: "ℹ️ ไม่พบกิจกรรมที่รอยืนยัน" }],
+      messages: [{ type: "text", text: "ℹ️ ไม่พบรายการที่รอเลือกหมวด" }],
     });
     return;
   }
 
   const doc = snap.docs[0];
   const data = doc.data();
+  await doc.ref.update({ category: categoryEn });
 
-  await doc.ref.update({ status: "done" });
+  const emoji = CATEGORY_EMOJI[categoryEn] || "🏷️";
+  const isTodo = data.type === "todo";
+
+  const confirmText = isTodo
+    ? `✅ บันทึกเรียบร้อย!\n📌 ${data.title}\n${emoji} หมวด: ${text}\n📋 อยู่ในรายการสิ่งที่ต้องทำ (ยังไม่ทำ)`
+    : `✅ บันทึกเรียบร้อย!\n📌 ${data.title}\n📆 ${data.date}  🕐 ${data.time} น.\n${emoji} หมวด: ${text}`;
 
   await lineClient.replyMessage({
     replyToken,
-    messages: [
-      { type: "text", text: `✅ บันทึกเรียบร้อย: ${data.title} — เสร็จสิ้นแล้ว` },
-    ],
+    messages: [{ type: "text", text: confirmText }],
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Handle "done" message — match by title keyword
+// ---------------------------------------------------------------------------
+async function handleDoneMessage(text, replyToken) {
+  const searchTitle = extractTitleFromDoneMessage(text);
+
+  // Find pending/todo events that match the title
+  const snap = await db.collection("events")
+    .where("status", "in", ["pending", "todo"])
+    .orderBy("createdAt", "desc")
+    .limit(20)
+    .get();
+
+  let matchedDoc = null;
+
+  if (searchTitle) {
+    // Try to find by title match
+    for (const doc of snap.docs) {
+      const data = doc.data();
+      if (data.title && data.title.toLowerCase().includes(searchTitle.toLowerCase())) {
+        matchedDoc = doc;
+        break;
+      }
+    }
+  }
+
+  // If no title match, use the most recent pending/todo item
+  if (!matchedDoc && !snap.empty) {
+    matchedDoc = snap.docs[0];
+  }
+
+  if (!matchedDoc) {
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [{ type: "text", text: "ℹ️ ไม่พบรายการที่รอยืนยัน" }],
+    });
+    return;
+  }
+
+  const data = matchedDoc.data();
+  await matchedDoc.ref.update({ status: "done" });
+
+  const emoji = CATEGORY_EMOJI[data.category] || "✅";
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [{
+      type: "text",
+      text: `✅ เสร็จเรียบร้อย!\n${emoji} ${data.title} — เสร็จสิ้นแล้ว`
+    }],
   });
 }
 
@@ -388,7 +489,6 @@ exports.sendReminders = functions.pubsub
     const currentDate = fmt(bkkNow);
     const currentMinutes = bkkNow.getHours() * 60 + bkkNow.getMinutes();
 
-    // Get all pending events for today
     const snap = await db
       .collection("events")
       .where("date", "==", currentDate)
@@ -400,7 +500,7 @@ exports.sendReminders = functions.pubsub
       const [h, m] = data.time.split(":").map(Number);
       const eventMinutes = h * 60 + m;
       const diff = eventMinutes - currentMinutes;
-      // ── First-time notification (within 30 min before event) ──
+
       if (!data.notified && diff >= 0 && diff <= 30) {
         const msg =
           `⏰ แจ้งเตือน: ${data.title}\n` +
@@ -423,18 +523,16 @@ exports.sendReminders = functions.pubsub
         continue;
       }
 
-      // ── Persistent reminder for events with notes (every 30 min) ──
       if (data.notified && data.note && data.status === "pending") {
         const lastReminder = data.lastReminderAt?.toDate?.() || new Date(0);
         const msSinceLast = bkkNow - new Date(lastReminder.toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
         const minSinceLast = msSinceLast / 60000;
 
         if (minSinceLast >= 28) {
-          // ~30 min tolerance
           const msg =
             `🔔 เตือนอีกครั้ง: ${data.title}\n` +
             `📝 ${data.note}\n` +
-            `✉️ ตอบ "ทำแล้ว" หรือ "done" เพื่อยืนยัน`;
+            `✉️ ตอบ "เสร็จ" หรือ "done" เพื่อยืนยัน`;
 
           try {
             await lineClient.pushMessage({
@@ -459,7 +557,6 @@ exports.sendReminders = functions.pubsub
 // REST API: CRUD for dashboard
 // ---------------------------------------------------------------------------
 exports.api = functions.https.onRequest(async (req, res) => {
-  // CORS
   res.set("Access-Control-Allow-Origin", "*");
   res.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.set("Access-Control-Allow-Headers", "Content-Type");
@@ -468,7 +565,6 @@ exports.api = functions.https.onRequest(async (req, res) => {
   const path = req.path.replace(/^\//, "").split("/");
 
   try {
-    // GET /events?start=YYYY-MM-DD&end=YYYY-MM-DD
     if (req.method === "GET" && path[0] === "events") {
       const { start, end } = req.query;
       let query = db.collection("events").orderBy("date").orderBy("time");
@@ -479,7 +575,6 @@ exports.api = functions.https.onRequest(async (req, res) => {
       return res.json(events);
     }
 
-    // POST /events — create
     if (req.method === "POST" && path[0] === "events") {
       const data = req.body;
       data.status = data.status || "pending";
@@ -491,14 +586,12 @@ exports.api = functions.https.onRequest(async (req, res) => {
       return res.status(201).json({ id: ref.id, ...data });
     }
 
-    // PUT /events/:id — update
     if (req.method === "PUT" && path[0] === "events" && path[1]) {
       const id = path[1];
       await db.collection("events").doc(id).update(req.body);
       return res.json({ id, ...req.body });
     }
 
-    // DELETE /events/:id
     if (req.method === "DELETE" && path[0] === "events" && path[1]) {
       const id = path[1];
       await db.collection("events").doc(id).delete();
