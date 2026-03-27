@@ -500,7 +500,8 @@ function lsSave(key, data) {
 // State
 // ═════════════════════════════════════════════════════════════
 let events = useFirestore ? [] : lsLoad(LS_EVENTS);
-let todos = lsLoad(LS_TODOS);
+let todos = useFirestore ? [] : lsLoad(LS_TODOS);
+let unsubTodos = null;
 let currentDate = new Date();          // anchor date for all views
 let currentWeekStart = getMonday(new Date());
 let currentMonth = new Date();
@@ -603,7 +604,7 @@ function renderWeekView() {
         if (e.target.closest(".event-card")) return;
         openModal(null, dateStr, String(hour).padStart(2,"0") + ":00");
       });
-      const slotEvents = events.filter(ev => ev.date === dateStr && parseInt(ev.time) === hour);
+      const slotEvents = events.filter(ev => ev.date === dateStr && parseInt(ev.time) === hour && ev.type !== "todo");
       slotEvents.sort((a,b) => a.time.localeCompare(b.time));
       for (const ev of slotEvents) cell.appendChild(makeEventCard(ev));
       grid.appendChild(cell);
@@ -641,7 +642,7 @@ function renderDayView() {
       openModal(null, dateStr, String(hour).padStart(2,"0") + ":00");
     });
 
-    const slotEvents = events.filter(ev => ev.date === dateStr && parseInt(ev.time) === hour);
+    const slotEvents = events.filter(ev => ev.date === dateStr && parseInt(ev.time) === hour && ev.type !== "todo");
     slotEvents.sort((a,b) => a.time.localeCompare(b.time));
     for (const ev of slotEvents) cell.appendChild(makeEventCard(ev));
     grid.appendChild(cell);
@@ -689,7 +690,7 @@ function renderMonthView() {
     cell.appendChild(dateLabel);
 
     // Events for this day
-    const dayEvents = events.filter(ev => ev.date === cellStr);
+    const dayEvents = events.filter(ev => ev.date === cellStr && ev.type !== "todo");
     dayEvents.sort((a,b) => a.time.localeCompare(b.time));
     const maxShow = 3;
     for (let j = 0; j < Math.min(dayEvents.length, maxShow); j++) {
@@ -871,7 +872,13 @@ function renderTodos() {
 
     const body = el("div", { className: "todo-body" });
     const text = el("div", { className: "todo-text" });
-    text.textContent = todo.text;
+    const catColors = { work: "var(--work)", health: "var(--health)", personal: "var(--personal)", social: "var(--social)", errands: "var(--errands)" };
+    if (todo.category && catColors[todo.category]) {
+      const dot = el("span");
+      dot.style.cssText = "display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:" + catColors[todo.category];
+      text.appendChild(dot);
+    }
+    text.appendChild(document.createTextNode(todo.text));
     body.appendChild(text);
 
     const meta = el("div", { className: "todo-meta" });
@@ -904,24 +911,73 @@ function renderTodos() {
 function addTodo(text) {
   text = text.trim();
   if (!text) return;
-  todos.push({ id: uid(), text, done: false, createdAt: Date.now(), doneAt: null });
-  lsSave(LS_TODOS, todos);
-  renderTodos();
+  if (useFirestore) {
+    db.collection("events").add({
+      title: text,
+      type: "todo",
+      status: "todo",
+      category: "personal",
+      date: fmtDate(new Date()),
+      time: "00:00",
+      note: "",
+      notified: false,
+      reminderCount: 0,
+      lastReminderAt: null,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  } else {
+    todos.push({ id: uid(), text, done: false, createdAt: Date.now(), doneAt: null });
+    lsSave(LS_TODOS, todos);
+    renderTodos();
+  }
 }
 
 function toggleTodo(id) {
-  const t = todos.find(t => t.id === id);
-  if (!t) return;
-  t.done = !t.done;
-  t.doneAt = t.done ? Date.now() : null;
-  lsSave(LS_TODOS, todos);
-  renderTodos();
+  if (useFirestore) {
+    const t = todos.find(t => t.id === id);
+    if (!t) return;
+    const newStatus = t.done ? "todo" : "done";
+    db.collection("events").doc(id).update({ status: newStatus });
+  } else {
+    const t = todos.find(t => t.id === id);
+    if (!t) return;
+    t.done = !t.done;
+    t.doneAt = t.done ? Date.now() : null;
+    lsSave(LS_TODOS, todos);
+    renderTodos();
+  }
 }
 
 function deleteTodo(id) {
-  todos = todos.filter(t => t.id !== id);
-  lsSave(LS_TODOS, todos);
-  renderTodos();
+  if (useFirestore) {
+    db.collection("events").doc(id).delete();
+  } else {
+    todos = todos.filter(t => t.id !== id);
+    lsSave(LS_TODOS, todos);
+    renderTodos();
+  }
+}
+
+function subscribeTodos() {
+  if (!useFirestore) { renderTodos(); return; }
+  if (unsubTodos) unsubTodos();
+  unsubTodos = db.collection("events")
+    .where("type", "==", "todo")
+    .orderBy("createdAt", "desc")
+    .onSnapshot(snap => {
+      todos = snap.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          text: data.title || "",
+          done: data.status === "done",
+          createdAt: data.createdAt?.toDate?.()?.getTime() || Date.now(),
+          doneAt: data.status === "done" ? Date.now() : null,
+          category: data.category || "personal",
+        };
+      });
+      renderTodos();
+    }, err => { console.error("Todo subscribe error:", err); renderTodos(); });
 }
 
 // ═════════════════════════════════════════════════════════════
@@ -966,7 +1022,7 @@ document.querySelectorAll(".todo-tab").forEach(tab => {
 // INIT
 // ═════════════════════════════════════════════════════════════
 subscribeView();
-renderTodos();
+subscribeTodos();
 </script>
 </body>
 </html>
